@@ -9,10 +9,22 @@
           label="Select Table"
           outlined
         ></v-select>
+        <v-select
+          v-model="selectedYear"
+          :items="years"
+          label="Select Year"
+          outlined
+        ></v-select>
+        <v-text-field
+          v-model="selectDate"
+          label="Date"
+          type="date"
+          outlined
+        ></v-text-field>
         <v-file-input
           v-model="file"
-          label="Select System Log File (CSV, Excel)"
-          accept=".csv,.xlsx"
+          label="Select System Log File (CSV, Excel, Txt, HTML)"
+          accept=".csv,.xlsx,.txt,.html"
         ></v-file-input>
         <v-btn :disabled="!file" color="primary" @click="uploadFile"
           >Upload</v-btn
@@ -42,17 +54,29 @@ export default {
       loading: false,
       selectedTable: '',
       message: '',
+      selectDate: '',
+      selectedYear: new Date().getFullYear(), // Default to the current year
+      years: this.getYears(2000, new Date().getFullYear()), // Generate years dynamically
     };
   },
   methods: {
+    getYears(startYear, endYear) {
+      let years = [];
+      for (let year = endYear; year >= startYear; year--) {
+        years.push(year);
+      }
+      return years;
+    },
     async uploadFile() {
       if (!this.file) return;
       this.loading = true;
       let formData = new FormData();
       formData.append('file', this.file);
+      formData.append('table_name', this.selectedTable);
+      formData.append('date ', this.selectDate);
       try {
         const response = await axios.post(
-          'http://localhost:5000/upload',
+          'http://127.0.0.1:8000/upload',
           formData,
         );
         this.message = response.data.message;

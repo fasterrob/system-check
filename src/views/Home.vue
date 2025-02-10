@@ -3,7 +3,6 @@
     <v-card>
       <v-card-title>Dashboard</v-card-title>
       <v-card-text>
-        <!-- Table Selection Dropdown -->
         <v-select
           v-model="selectedTable"
           :items="tableNames"
@@ -11,7 +10,6 @@
           outlined
         ></v-select>
 
-        <!-- Date Range Inputs -->
         <v-row class="mt-3">
           <v-col cols="6">
             <v-text-field
@@ -31,20 +29,18 @@
           </v-col>
         </v-row>
 
-        <!-- Search Button -->
         <v-row justify="end">
           <v-col cols="auto">
             <v-btn
               color="primary"
               :disabled="!selectedTable || !startDate || !endDate"
-              @click="fetchMockData"
+              @click="fetchData"
             >
               Search Data
             </v-btn>
           </v-col>
         </v-row>
 
-        <!-- Display Selected Information -->
         <v-alert
           v-if="selectedTable && startDate && endDate"
           type="info"
@@ -57,57 +53,17 @@
       </v-card-text>
     </v-card>
 
-    <!-- Charts Section -->
     <v-card class="mt-5">
-      <v-card-title>CPU & Memory Usage</v-card-title>
+      <v-card-title>CPU Usage</v-card-title>
       <v-card-text>
         <canvas ref="cpuChart"></canvas>
-        <v-card-text> Min : {{ maxCpu }} </v-card-text>
-        <v-card-text> Max : {{ minCpu }} </v-card-text>
-        <v-card-text> Average : {{ averageCpu }} </v-card-text>
-      </v-card-text>
-    </v-card>
-
-    <v-card class="mt-5">
-      <v-card-title>Memory Usage</v-card-title>
-      <v-card-text>
-        <canvas ref="memoryChart"></canvas>
-      </v-card-text>
-    </v-card>
-
-    <!-- Filesystem Table -->
-    <v-card class="mt-5">
-      <v-card-title>Filesystem Usage</v-card-title>
-      <v-card-text>
-        <v-data-table
-          :headers="filesystemHeaders"
-          :items="filesystemData"
-          dense
-          :items-per-page="-1"
-          hide-default-footer
-          class="elevation-1"
-        ></v-data-table>
-      </v-card-text>
-    </v-card>
-
-    <!-- Tablespace Table -->
-    <v-card class="mt-5">
-      <v-card-title>Database Tablespace Usage</v-card-title>
-      <v-card-text>
-        <v-data-table
-          :headers="tablespaceHeaders"
-          :items="tablespaceData"
-          dense
-          :items-per-page="-1"
-          hide-default-footer
-          class="elevation-1"
-        ></v-data-table>
       </v-card-text>
     </v-card>
   </v-container>
 </template>
 
 <script>
+import axios from 'axios';
 import Chart from 'chart.js/auto';
 
 export default {
@@ -118,102 +74,38 @@ export default {
       endDate: '',
       tableNames: ['BRLN', 'TYM', 'BURAPA'],
       cpuData: [],
-      memoryData: [],
-      filesystemData: [],
-      tablespaceData: [],
-      filesystemHeaders: [
-        { title: 'Filesystem', value: 'filesystem' },
-        { title: 'Current Usage (%)', value: 'currentUsage' },
-        { title: 'Previous Usage (%)', value: 'previousUsage' },
-        { title: 'Change (%)', value: 'change' },
-      ],
-      tablespaceHeaders: [
-        { title: 'Tablespace', value: 'tablespace' },
-        { title: 'Current Usage (GB)', value: 'currentUsage' },
-        { title: 'Previous Usage (GB)', value: 'previousUsage' },
-        { title: 'Change (%)', value: 'change' },
-      ],
+      cpuChartInstance: null,
     };
   },
   methods: {
-    fetchMockData() {
-      console.log(
-        'Fetching mock data for:',
-        this.selectedTable,
-        'Between:',
-        this.startDate,
-        'and',
-        this.endDate,
-      );
-
-      const mockTimestamps = Array.from({ length: 10 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return date.toISOString().split('T')[0];
-      }).reverse();
-
-      // Mock CPU Data (User, System, IO Wait)
-      this.cpuData = mockTimestamps.map((timestamp) => ({
-        timestamp,
-        user: Math.random() * 50,
-        system: Math.random() * 30,
-        iowait: Math.random() * 20,
-      }));
-
-      // Mock Memory Data
-      this.memoryData = mockTimestamps.map((timestamp) => ({
-        timestamp,
-        usage: Math.random() * 90,
-      }));
-
-      // Mock Filesystem Data (Comparison Between Selected Date & Previous Month)
-      this.filesystemData = [
-        {
-          filesystem: '/dev/sda1',
-          currentUsage: (Math.random() * 80).toFixed(2),
-          previousUsage: (Math.random() * 75).toFixed(2),
-          change: this.calculateChange(),
-        },
-        {
-          filesystem: '/dev/sdb1',
-          currentUsage: (Math.random() * 70).toFixed(2),
-          previousUsage: (Math.random() * 65).toFixed(2),
-          change: this.calculateChange(),
-        },
-      ];
-
-      // Mock Tablespace Data (Comparison Between Selected Date & Previous Month)
-      this.tablespaceData = [
-        {
-          tablespace: 'TS_DATA_01',
-          currentUsage: (Math.random() * 50).toFixed(2),
-          previousUsage: (Math.random() * 45).toFixed(2),
-          change: this.calculateChange(),
-        },
-        {
-          tablespace: 'TS_INDEX_01',
-          currentUsage: (Math.random() * 40).toFixed(2),
-          previousUsage: (Math.random() * 35).toFixed(2),
-          change: this.calculateChange(),
-        },
-      ];
-
-      this.renderCharts();
+    async fetchData() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/cpu-usage', {
+          params: {
+            site: this.selectedTable,
+            start_date: this.startDate,
+            end_date: this.endDate,
+          },
+        });
+        this.cpuData = response.data.cpu_usage.map((item) => ({
+          timestamp: item.datetime_log,
+          user: item.user_percent,
+          system: item.system_percent,
+          iowait: item.iowait_percent,
+          idle: item.idle_percent,
+        }));
+        this.renderCharts();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     },
 
     renderCharts() {
-      this.createCpuChart();
-      this.createChart(
-        this.$refs.memoryChart,
-        'Memory Usage (%)',
-        this.memoryData,
-        'blue',
-      );
-    },
-
-    createCpuChart() {
       if (!this.$refs.cpuChart) return;
-      new Chart(this.$refs.cpuChart, {
+      if (this.cpuChartInstance) {
+        this.cpuChartInstance.destroy();
+      }
+      this.cpuChartInstance = new Chart(this.$refs.cpuChart, {
         type: 'line',
         data: {
           labels: this.cpuData.map((d) => d.timestamp),
@@ -238,32 +130,59 @@ export default {
             },
           ],
         },
-      });
-    },
-
-    createChart(canvasRef, label, data, color) {
-      if (!canvasRef) return;
-      new Chart(canvasRef, {
-        type: 'line',
-        data: {
-          labels: data.map((d) => d.timestamp),
-          datasets: [
-            {
-              label: label,
-              data: data.map((d) => d.usage),
-              borderColor: color,
-              fill: false,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
             },
-          ],
+            title: {
+              display: true,
+              text: 'CPU UTILIZATION',
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+            },
+            zoom: {
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true,
+                },
+                mode: 'x',
+              },
+              pan: {
+                enabled: true,
+                mode: 'x',
+              },
+            },
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            x: {
+              display: true,
+              title: {
+                display: true,
+                text: 'Date',
+              },
+            },
+            y: {
+              display: true,
+              title: {
+                display: true,
+                text: 'Value',
+              },
+              max: 100,
+            },
+          },
         },
       });
-    },
-
-    calculateChange() {
-      const prev = Math.random() * 50;
-      const curr = Math.random() * 50;
-      const change = (((curr - prev) / prev) * 100).toFixed(2);
-      return change > 0 ? `+${change}%` : `${change}%`;
     },
   },
 };
