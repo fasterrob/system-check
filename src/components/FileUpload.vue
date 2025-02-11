@@ -73,7 +73,9 @@ export default {
       let formData = new FormData();
       formData.append('file', this.file);
       formData.append('table_name', this.selectedTable);
-      formData.append('date ', this.selectDate);
+      formData.append('selectDate', this.selectDate);
+      formData.append('year', this.selectedYear);
+      console.log(formData);
       try {
         const response = await axios.post(
           'http://127.0.0.1:8000/upload',

@@ -6,7 +6,7 @@
         <v-select
           v-model="selectedTable"
           :items="tableNames"
-          label="Select Table"
+          label="Select Site"
           outlined
         ></v-select>
 
@@ -53,10 +53,22 @@
       </v-card-text>
     </v-card>
 
-    <v-card class="mt-5">
+    <v-card v-show="cpuData.length > 0" class="mt-5">
       <v-card-title>CPU Usage</v-card-title>
       <v-card-text>
         <canvas ref="cpuChart"></canvas>
+      </v-card-text>
+    </v-card>
+
+    <v-card v-show="fsData.length > 0" class="mt-5">
+      <v-card-title>Filesystem Usage Comparison</v-card-title>
+      <v-card-text>
+        <v-data-table
+          :headers="fsHeaders"
+          :items="fsData"
+          item-key="date"
+          class="elevation-1"
+        ></v-data-table>
       </v-card-text>
     </v-card>
   </v-container>
@@ -74,19 +86,35 @@ export default {
       endDate: '',
       tableNames: ['BRLN', 'TYM', 'BURAPA'],
       cpuData: [],
+      fsData: [],
       cpuChartInstance: null,
+      fsHeaders: [
+        { title: 'Date', value: 'date' },
+        { title: 'Filesystem', value: 'filesystem' },
+        { title: 'Used (MB)', value: 'used' },
+        { title: 'Available (MB)', value: 'available' },
+        { title: '% Used', value: 'usepercent' },
+        { title: 'Change Used (MB)', value: 'change_used' },
+        { title: 'Change Available (MB)', value: 'change_available' },
+        { title: 'Change % Used', value: 'change_usepercent' },
+      ],
     };
   },
   methods: {
     async fetchData() {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/cpu-usage', {
-          params: {
-            site: this.selectedTable,
-            start_date: this.startDate,
-            end_date: this.endDate,
+        const response = await axios.get(
+          'http://127.0.0.1:8000/dashboard-usage',
+          {
+            params: {
+              site: this.selectedTable,
+              start_date: this.startDate,
+              end_date: this.endDate,
+            },
           },
-        });
+        );
+
+        // Process CPU data
         this.cpuData = response.data.cpu_usage.map((item) => ({
           timestamp: item.datetime_log,
           user: item.user_percent,
@@ -94,13 +122,27 @@ export default {
           iowait: item.iowait_percent,
           idle: item.idle_percent,
         }));
-        this.renderCharts();
+
+        // Process Filesystem data (current vs previous month)
+        this.fsData = response.data.filesystem_comparison.map((item) => ({
+          date: item.date,
+          filesystem: item.filesystem,
+          used: item.used,
+          available: item.available,
+          usepercent: item.usepercent,
+          change_used: item.change_used || 0,
+          change_available: item.change_available || 0,
+          change_usepercent: item.change_usepercent || 0,
+        }));
+
+        // Render charts
+        this.renderCPUChart();
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     },
 
-    renderCharts() {
+    renderCPUChart() {
       if (!this.$refs.cpuChart) return;
       if (this.cpuChartInstance) {
         this.cpuChartInstance.destroy();
@@ -133,53 +175,13 @@ export default {
         options: {
           responsive: true,
           plugins: {
-            legend: {
-              position: 'top',
-            },
-            title: {
-              display: true,
-              text: 'CPU UTILIZATION',
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-            },
-            zoom: {
-              zoom: {
-                wheel: {
-                  enabled: true,
-                },
-                pinch: {
-                  enabled: true,
-                },
-                mode: 'x',
-              },
-              pan: {
-                enabled: true,
-                mode: 'x',
-              },
-            },
-          },
-          interaction: {
-            mode: 'index',
-            intersect: false,
+            legend: { position: 'top' },
+            title: { display: true, text: 'CPU UTILIZATION' },
+            tooltip: { mode: 'index', intersect: false },
           },
           scales: {
-            x: {
-              display: true,
-              title: {
-                display: true,
-                text: 'Date',
-              },
-            },
-            y: {
-              display: true,
-              title: {
-                display: true,
-                text: 'Value',
-              },
-              max: 100,
-            },
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'Percentage' }, max: 100 },
           },
         },
       });

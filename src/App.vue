@@ -18,6 +18,12 @@
         <v-list-item link to="/reports" prepend-icon="mdi-file-document">
           Reports
         </v-list-item>
+
+        <v-divider></v-divider>
+        <v-list-item title="Firewall" />
+        <v-list-item link to="/firewall-dashboard" prepend-icon="mdi-security">
+          Firewall Dashboard
+        </v-list-item>
       </v-list>
     </v-navigation-drawer>
 
