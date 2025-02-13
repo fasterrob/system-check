@@ -58,6 +58,25 @@
       <v-card-text>
         <canvas ref="cpuChart"></canvas>
       </v-card-text>
+      <v-card-text>
+        <v-data-table
+          :headers="headersCpuSummary"
+          :items="cpuSummary"
+          class="elevation-1"
+          hide-default-footer
+        >
+          <template v-slot:item.average="{ item }">
+            {{ item.average.toFixed(2) }}
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+
+    <v-card v-show="memoryData.length > 0" class="mt-5">
+      <v-card-title>Memory Usage</v-card-title>
+      <v-card-text>
+        <canvas ref="memoryChart"></canvas>
+      </v-card-text>
     </v-card>
 
     <v-card v-show="fsData.length > 0" class="mt-5">
@@ -66,7 +85,76 @@
         <v-data-table
           :headers="fsHeaders"
           :items="fsData"
-          item-key="date"
+          item-key="filesystem"
+          density="compact"
+          hide-default-footer
+          class="elevation-1"
+        >
+          <template v-slot:item.status="{ item }">
+            <v-chip :color="item.usepercent >= 90 ? 'success' : 'error'" dark>
+              {{ item.usepercent >= 90 ? 'High Usage' : 'Normal' }}
+            </v-chip>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+
+    <v-card v-show="tbData.length > 0" class="mt-5">
+      <v-card-title>Tablespace Usage</v-card-title>
+      <v-card-text>
+        <v-data-table
+          :headers="tbHeaders"
+          :items="tbData"
+          item-key="name"
+          class="elevation-1"
+          density="compact"
+          :items-per-page="-1"
+          :item-class="tbRowClass"
+        >
+          <template v-slot:item.statusforRead="{ item }">
+            <v-chip
+              :color="
+                item.free_percent <= 0.5
+                  ? 'red'
+                  : item.free_percent <= 10
+                    ? 'orange'
+                    : 'green'
+              "
+              dark
+            >
+              {{
+                item.free_percent <= 0.5
+                  ? 'Critical'
+                  : item.free_percent <= 10
+                    ? 'Waning'
+                    : 'Normal'
+              }}
+            </v-chip>
+          </template>
+        </v-data-table>
+        <v-card-title>TableSpace (GB)</v-card-title>
+        <v-data-table
+          :headers="headersTbSummary"
+          :items="tbSummary"
+          class="elevation-1"
+        >
+          <template v-slot:item.mb="{ item }">
+            {{ item.mb.toLocaleString() }} MB
+          </template>
+          <template v-slot:item.gb="{ item }">
+            {{ (item.mb / 1024).toFixed(2) }} GB
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+
+    <v-card v-show="starupData.length > 0" class="mt-5">
+      <v-card-title>Startup Time</v-card-title>
+      <v-card-text>
+        <v-data-table
+          :headers="starupHeaders"
+          :items="starupData"
+          item-key="datetime_log"
           class="elevation-1"
         ></v-data-table>
       </v-card-text>
@@ -86,17 +174,66 @@ export default {
       endDate: '',
       tableNames: ['BRLN', 'TYM', 'BURAPA'],
       cpuData: [],
+      cpuSummary: [],
+      headersCpuSummary: [
+        { title: 'Type', align: 'start', key: 'type' },
+        { title: 'Min (%)', key: 'min' },
+        { title: 'Max (%)', key: 'max' },
+        { title: 'Average (%)', key: 'average' },
+      ],
+      memoryData: [],
       fsData: [],
+      tbData: [],
+      tbSummary: [],
+      headersTbSummary: [
+        { title: 'Metric', Key: 'metric' },
+        { title: 'Value (MB)', Key: 'mb' },
+        { title: 'Value (GB)', Key: 'gb' },
+      ],
+      starupData: [],
       cpuChartInstance: null,
+      memoryChartInstance: null,
       fsHeaders: [
-        { title: 'Date', value: 'date' },
-        { title: 'Filesystem', value: 'filesystem' },
-        { title: 'Used (MB)', value: 'used' },
-        { title: 'Available (MB)', value: 'available' },
-        { title: '% Used', value: 'usepercent' },
-        { title: 'Change Used (MB)', value: 'change_used' },
-        { title: 'Change Available (MB)', value: 'change_available' },
-        { title: 'Change % Used', value: 'change_usepercent' },
+        { title: 'Date', key: 'date' },
+        { title: 'Filesystem', key: 'filesystem' },
+        { title: 'Used (MB)', key: 'used' },
+        { title: 'Available (MB)', key: 'available' },
+        {
+          title: '% Used',
+          key: 'usepercent',
+          cellProps: ({ value }) => ({
+            class: value >= 90 ? 'text-red' : 'text-purple',
+          }),
+        },
+        {
+          title: 'Status',
+          key: 'status',
+        },
+      ],
+      tbHeaders: [
+        { title: 'Date', key: 'datetime_log' },
+        { title: 'Status', key: 'status' },
+        { title: 'Name', key: 'name' },
+        { title: 'Type', key: 'type' },
+        { title: 'Extent Management', key: 'extent_management' },
+        { title: 'Size (MB)', key: 'size_mb' },
+        { title: 'Free (MB)', key: 'free_mb' },
+        {
+          title: 'Free (%)',
+          key: 'free_percent',
+          cellProps: ({ value }) => ({
+            class: value < 10 ? 'text-red' : 'text-purple',
+          }),
+        },
+        {
+          title: 'Status',
+          key: 'statusforRead',
+        },
+      ],
+      starupHeaders: [
+        { title: 'Date', key: 'datetime_log' },
+        { title: 'Instance', key: 'instance' },
+        { title: 'Startup Time (s)', key: 'startup_time' },
       ],
     };
   },
@@ -116,24 +253,56 @@ export default {
 
         // Process CPU data
         this.cpuData = response.data.cpu_usage.map((item) => ({
-          timestamp: item.datetime_log,
+          timestamp: item.datetime_log.split(' ')[0],
           user: item.user_percent,
           system: item.system_percent,
           iowait: item.iowait_percent,
           idle: item.idle_percent,
         }));
 
-        // Process Filesystem data (current vs previous month)
+        this.cpuSummary = [
+          { type: 'User %', ...response.data.cpu_summary.user_percent },
+          { type: 'System %', ...response.data.cpu_summary.system_percent },
+          { type: 'I/O Wait %', ...response.data.cpu_summary.iowait_percent },
+        ];
+
         this.fsData = response.data.filesystem_comparison.map((item) => ({
-          date: item.date,
+          date: item.entrydate.split(' ')[0],
           filesystem: item.filesystem,
           used: item.used,
           available: item.available,
           usepercent: item.usepercent,
-          change_used: item.change_used || 0,
-          change_available: item.change_available || 0,
-          change_usepercent: item.change_usepercent || 0,
         }));
+
+        this.tbData = response.data.tablespace_usage.map((item) => ({
+          datetime_log: item.datetime_log.split(' ')[0],
+          status: item.status,
+          name: item.name,
+          type: item.type,
+          extent_management: item.extent_management,
+          size_mb: item.size_mb,
+          free_mb: item.free_mb,
+          free_percent: parseFloat(item.free_percent),
+        }));
+
+        this.tbSummary = [
+          {
+            metric: 'Allocated',
+            mb: response.data.tablespace_summary.total_size,
+          },
+          {
+            metric: 'Used',
+            mb:
+              response.data.tablespace_summary.total_size -
+              response.data.tablespace_summary.total_free,
+          },
+          {
+            metric: 'Used(No UNDO, TEMP)',
+            mb:
+              response.data.tablespace_summary.without_temp_undo_size -
+              response.data.tablespace_summary.without_temp_undo_free,
+          },
+        ];
 
         // Render charts
         this.renderCPUChart();
@@ -186,6 +355,35 @@ export default {
         },
       });
     },
+
+    tbRowClass(item) {
+      console.log(item);
+      if (!item || typeof item.free_percent === 'undefined') return '';
+
+      if (item.free_percent <= 0.5) {
+        console.log(item.free_percent);
+        return 'high-usage'; // Red for critically low free space
+      } else if (item.free_percent <= 5) {
+        return 'medium-usage'; // Orange for warning
+      } else {
+        return 'low-usage'; // Green for normal
+      }
+    },
   },
 };
 </script>
+
+<style lang="css">
+.high-usage {
+  color: red !important;
+  background-color: red !important; /* Light Red */
+}
+
+.medium-usage {
+  background-color: #fac063 !important; /* Light Orange */
+}
+
+.low-usage {
+  background-color: #c3f7c8 !important; /* Light Green */
+}
+</style>
