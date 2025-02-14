@@ -25,9 +25,28 @@
           <template v-slot:item.created_at="{ item }">
             {{ formatDate(item.created_at) }}
           </template>
+          <template v-slot:item.actions="{ item }">
+            <v-btn size="small" color="red" @click="openDeleteDialog(item)"
+              >X</v-btn
+            >
+          </template>
         </v-data-table>
       </v-card-text>
     </v-card>
+
+    <!-- Confirmation Dialog -->
+    <v-dialog v-model="deleteDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline"
+          >Are you sure you want to delete
+          {{ siteToDelete.name }}?</v-card-title
+        >
+        <v-card-actions>
+          <v-btn color="blue" text @click="deleteDialog = false">Cancel</v-btn>
+          <v-btn color="red" text @click="deleteSite">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -42,11 +61,17 @@ export default {
       siteName: '',
       siteList: [],
       siteHeaders: [
-        { text: 'ID', value: 'id' },
-        { text: 'Site Name', value: 'name' },
-        { text: 'Created At', value: 'created_at' },
+        { title: 'ID', key: 'id' },
+        { title: 'Site Name', key: 'name' },
+        { title: 'Created At', key: 'created_at' },
+        { title: 'Actions', key: 'actions' },
       ],
+      deleteDialog: false,
+      siteToDelete: null, // Site to delete
     };
+  },
+  mounted() {
+    this.fetchData();
   },
   methods: {
     async fetchData() {
@@ -95,13 +120,34 @@ export default {
         this.loading = false;
       }
     },
+    async deleteSite() {
+      if (!this.siteToDelete) return;
+      this.loading = true;
+      try {
+        // Perform the deletion API call
+        const res = await axios.delete(
+          `http://127.0.0.1:8000/delete-site/${this.siteToDelete.id}`,
+        );
+        this.siteList = this.siteList.filter(
+          (site) => site.id !== this.siteToDelete.id,
+        );
+        this.message = 'Site deleted successfully';
+      } catch (e) {
+        console.error('Delete site failed:', e);
+        this.message = 'Failed to delete site.';
+      } finally {
+        this.deleteDialog = false;
+        this.loading = false;
+      }
+    },
+    openDeleteDialog(site) {
+      this.siteToDelete = site;
+      this.deleteDialog = true;
+    },
     formatDate(dateStr) {
       const date = new Date(dateStr);
       return date.toLocaleString(); // Format for readability
     },
-  },
-  mounted() {
-    this.fetchData();
   },
 };
 </script>

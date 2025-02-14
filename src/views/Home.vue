@@ -109,7 +109,6 @@
           class="elevation-1"
           density="compact"
           :items-per-page="-1"
-          :item-class="tbRowClass"
         >
           <template v-slot:item.statusforRead="{ item }">
             <v-chip
@@ -141,9 +140,7 @@
           <template v-slot:item.mb="{ item }">
             {{ item.mb.toLocaleString() }} MB
           </template>
-          <template v-slot:item.gb="{ item }">
-            {{ (item.mb / 1024).toFixed(2) }} GB
-          </template>
+          <template v-slot:item.gb="{ item }"> {{ item.gb }} GB </template>
         </v-data-table>
       </v-card-text>
     </v-card>
@@ -186,9 +183,9 @@ export default {
       tbData: [],
       tbSummary: [],
       headersTbSummary: [
-        { title: 'Metric', Key: 'metric' },
-        { title: 'Value (MB)', Key: 'mb' },
-        { title: 'Value (GB)', Key: 'gb' },
+        { title: 'Metric', key: 'metric' },
+        { title: 'Value (MB)', key: 'mb' },
+        { title: 'Value (GB)', key: 'gb' }, // Add GB column
       ],
       starupData: [],
       cpuChartInstance: null,
@@ -236,6 +233,9 @@ export default {
         { title: 'Startup Time (s)', key: 'startup_time' },
       ],
     };
+  },
+  mounted() {
+    this.fetchSite();
   },
   methods: {
     async fetchSite() {
@@ -303,18 +303,29 @@ export default {
           {
             metric: 'Allocated',
             mb: response.data.tablespace_summary.total_size,
+            gb: (response.data.tablespace_summary.total_size / 1024).toFixed(2),
           },
           {
             metric: 'Used',
             mb:
               response.data.tablespace_summary.total_size -
               response.data.tablespace_summary.total_free,
+            gb: (
+              (response.data.tablespace_summary.total_size -
+                response.data.tablespace_summary.total_free) /
+              1024
+            ).toFixed(2),
           },
           {
             metric: 'Used(No UNDO, TEMP)',
             mb:
               response.data.tablespace_summary.without_temp_undo_size -
               response.data.tablespace_summary.without_temp_undo_free,
+            gb: (
+              (response.data.tablespace_summary.without_temp_undo_size -
+                response.data.tablespace_summary.without_temp_undo_free) /
+              1024
+            ).toFixed(2),
           },
         ];
 
@@ -369,23 +380,6 @@ export default {
         },
       });
     },
-
-    tbRowClass(item) {
-      console.log(item);
-      if (!item || typeof item.free_percent === 'undefined') return '';
-
-      if (item.free_percent <= 0.5) {
-        console.log(item.free_percent);
-        return 'high-usage'; // Red for critically low free space
-      } else if (item.free_percent <= 5) {
-        return 'medium-usage'; // Orange for warning
-      } else {
-        return 'low-usage'; // Green for normal
-      }
-    },
-  },
-  mounted() {
-    this.fetchSite();
   },
 };
 </script>

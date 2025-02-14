@@ -9,12 +9,6 @@
           label="Select Table"
           outlined
         ></v-select>
-        <v-select
-          v-model="selectedYear"
-          :items="years"
-          label="Select Year"
-          outlined
-        ></v-select>
         <v-text-field
           v-model="selectDate"
           label="Date"
@@ -56,16 +50,32 @@ export default {
       message: '',
       selectDate: '',
       selectedYear: new Date().getFullYear(), // Default to the current year
-      years: this.getYears(2000, new Date().getFullYear()), // Generate years dynamically
     };
   },
+  computed: {
+    yearFromSelectDate() {
+      return this.selectDate
+        ? this.selectDate.split('-')[0]
+        : this.selectedYear; // Get the year from selectDate
+    },
+  },
+  mounted() {
+    this.fetchSite();
+  },
   methods: {
-    getYears(startYear, endYear) {
-      let years = [];
-      for (let year = endYear; year >= startYear; year--) {
-        years.push(year);
+    async fetchSite() {
+      this.loading = true;
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/table-name');
+
+        // Convert array of arrays to array of objects
+        this.tableNames = res.data.site_name.map((item) => item[1]);
+      } catch (e) {
+        console.error('Fetch failed:', e);
+        this.message = 'Failed to fetch sites.';
+      } finally {
+        this.loading = false;
       }
-      return years;
     },
     async uploadFile() {
       if (!this.file) return;
@@ -74,7 +84,7 @@ export default {
       formData.append('file', this.file);
       formData.append('table_name', this.selectedTable);
       formData.append('selectDate', this.selectDate);
-      formData.append('year', this.selectedYear);
+      formData.append('year', this.yearFromSelectDate);
       console.log(formData);
       try {
         const response = await axios.post(
