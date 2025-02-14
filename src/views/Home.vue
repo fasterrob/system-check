@@ -238,6 +238,20 @@ export default {
     };
   },
   methods: {
+    async fetchSite() {
+      this.loading = true;
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/table-name');
+
+        // Convert array of arrays to array of objects
+        this.tableNames = res.data.site_name.map((item) => item[1]);
+      } catch (e) {
+        console.error('Fetch failed:', e);
+        this.message = 'Failed to fetch sites.';
+      } finally {
+        this.loading = false;
+      }
+    },
     async fetchData() {
       try {
         const response = await axios.get(
@@ -369,6 +383,9 @@ export default {
         return 'low-usage'; // Green for normal
       }
     },
+  },
+  mounted() {
+    this.fetchSite();
   },
 };
 </script>
