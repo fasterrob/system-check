@@ -15,7 +15,7 @@
           type="month"
           outlined
         ></v-text-field>
-        {{ selectDate }}
+        {{ selectDate + '-01' }}
         <v-file-input
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"

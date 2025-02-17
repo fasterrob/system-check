@@ -24,6 +24,7 @@
               v-model="endDate"
               label="End Date"
               type="date"
+              @keyup.enter="fetchData"
               outlined
             ></v-text-field>
           </v-col>
@@ -44,6 +45,7 @@
               color="primary"
               :disabled="!selectedTable || !startDate || !endDate"
               @click="fetchData"
+              :loading="loading"
             >
               Search Data
             </v-btn>
@@ -64,10 +66,10 @@
 
     <v-card v-show="cpuData.length > 0" class="mt-5">
       <v-card-title>CPU Usage</v-card-title>
-      <v-card-text>
+      <v-card-text class="pb-0">
         <canvas ref="cpuChart"></canvas>
       </v-card-text>
-      <v-card-text>
+      <v-card-text class="pt-0">
         <v-data-table
           :headers="headersCpuSummary"
           :items="cpuSummary"
@@ -180,6 +182,7 @@ export default {
   components: { ConfirmDialog },
   data() {
     return {
+      loading: false,
       selectedTable: '',
       startDate: '',
       endDate: '',
@@ -267,6 +270,7 @@ export default {
       }
     },
     async fetchData() {
+      this.loading = true;
       try {
         const response = await axios.get(
           'http://127.0.0.1:8000/dashboard/dashboard-usage',
@@ -293,6 +297,15 @@ export default {
           { type: 'System %', ...response.data.cpu_summary.system_percent },
           { type: 'I/O Wait %', ...response.data.cpu_summary.iowait_percent },
         ];
+
+        this.memoryData = response.data.memory_usage.map((item) => ({
+          timestamp: item.datetime_log.split(' ')[0],
+          kbswpfree: item.kbswpfree,
+          kbswpused: item.kbswpused,
+          swpused_percent: item.swpused_percent,
+        }));
+
+        console.log(this.memoryData);
 
         this.fsData = response.data.filesystem_comparison.map((item) => ({
           date: item.entrydate.split(' ')[0],
@@ -345,9 +358,45 @@ export default {
 
         // Render charts
         this.renderCPUChart();
+        this.renderMemoryChart();
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
+        this.loading = false;
       }
+    },
+
+    renderMemoryChart() {
+      if (!this.$refs.memoryChart) return;
+      if (this.memoryChartInstance) {
+        this.memoryChartInstance.destroy();
+      }
+      this.memoryChartInstance = new Chart(this.$refs.memoryChart, {
+        type: 'line',
+        data: {
+          labels: this.memoryData.map((d) => d.timestamp),
+          datasets: [
+            {
+              label: 'Swap Used (%)',
+              data: this.memoryData.map((d) => d.swpused_percent),
+              borderColor: 'red',
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: true, text: 'MEMORY USAGE' },
+            tooltip: { mode: 'index', intersect: false },
+          },
+          scales: {
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'KB' } },
+          },
+        },
+      });
     },
 
     renderCPUChart() {
