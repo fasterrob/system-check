@@ -32,6 +32,15 @@
         <v-row justify="end">
           <v-col cols="auto">
             <v-btn
+              color="warning"
+              :disabled="!selectedTable || !startDate || !endDate"
+              @click="showConfirm"
+            >
+              Generate Report
+            </v-btn>
+          </v-col>
+          <v-col cols="auto">
+            <v-btn
               color="primary"
               :disabled="!selectedTable || !startDate || !endDate"
               @click="fetchData"
@@ -80,7 +89,7 @@
     </v-card>
 
     <v-card v-show="fsData.length > 0" class="mt-5">
-      <v-card-title>Filesystem Usage Comparison</v-card-title>
+      <v-card-title>Filesystem Usage ({{ fsData[0]?.date }})</v-card-title>
       <v-card-text>
         <v-data-table
           :headers="fsHeaders"
@@ -100,7 +109,9 @@
     </v-card>
 
     <v-card v-show="tbData.length > 0" class="mt-5">
-      <v-card-title>Tablespace Usage</v-card-title>
+      <v-card-title
+        >Tablespace Usage ({{ tbData[0]?.datetime_log }})</v-card-title
+      >
       <v-card-text>
         <v-data-table
           :headers="tbHeaders"
@@ -113,7 +124,7 @@
           <template v-slot:item.statusforRead="{ item }">
             <v-chip
               :color="
-                item.free_percent <= 0.5
+                item.free_percent <= 1
                   ? 'red'
                   : item.free_percent <= 10
                     ? 'orange'
@@ -122,7 +133,7 @@
               dark
             >
               {{
-                item.free_percent <= 0.5
+                item.free_percent <= 1
                   ? 'Critical'
                   : item.free_percent <= 10
                     ? 'Waning'
@@ -131,11 +142,11 @@
             </v-chip>
           </template>
         </v-data-table>
-        <v-card-title>TableSpace (GB)</v-card-title>
         <v-data-table
           :headers="headersTbSummary"
           :items="tbSummary"
           class="elevation-1"
+          hide-default-footer
         >
           <template v-slot:item.mb="{ item }">
             {{ item.mb.toLocaleString() }} MB
@@ -156,20 +167,23 @@
         ></v-data-table>
       </v-card-text>
     </v-card>
+    <ConfirmDialog ref="confirmDialog" />
   </v-container>
 </template>
 
 <script>
 import axios from 'axios';
 import Chart from 'chart.js/auto';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 export default {
+  components: { ConfirmDialog },
   data() {
     return {
       selectedTable: '',
       startDate: '',
       endDate: '',
-      tableNames: ['BRLN', 'TYM', 'BURAPA'],
+      tableNames: [],
       cpuData: [],
       cpuSummary: [],
       headersCpuSummary: [
@@ -191,7 +205,7 @@ export default {
       cpuChartInstance: null,
       memoryChartInstance: null,
       fsHeaders: [
-        { title: 'Date', key: 'date' },
+        // { title: 'Date', key: 'date' },
         { title: 'Filesystem', key: 'filesystem' },
         { title: 'Used (MB)', key: 'used' },
         { title: 'Available (MB)', key: 'available' },
@@ -208,7 +222,7 @@ export default {
         },
       ],
       tbHeaders: [
-        { title: 'Date', key: 'datetime_log' },
+        // { title: 'Date', key: 'datetime_log' },
         { title: 'Status', key: 'status' },
         { title: 'Name', key: 'name' },
         { title: 'Type', key: 'type' },
@@ -241,7 +255,7 @@ export default {
     async fetchSite() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/table-name');
+        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
 
         // Convert array of arrays to array of objects
         this.tableNames = res.data.site_name.map((item) => item[1]);
@@ -255,7 +269,7 @@ export default {
     async fetchData() {
       try {
         const response = await axios.get(
-          'http://127.0.0.1:8000/dashboard-usage',
+          'http://127.0.0.1:8000/dashboard/dashboard-usage',
           {
             params: {
               site: this.selectedTable,
@@ -350,19 +364,19 @@ export default {
               label: 'User (%)',
               data: this.cpuData.map((d) => d.user),
               borderColor: 'blue',
-              fill: false,
+              fill: true,
             },
             {
               label: 'System (%)',
               data: this.cpuData.map((d) => d.system),
               borderColor: 'green',
-              fill: false,
+              fill: true,
             },
             {
               label: 'IO Wait (%)',
               data: this.cpuData.map((d) => d.iowait),
               borderColor: 'red',
-              fill: false,
+              fill: true,
             },
           ],
         },
@@ -379,6 +393,19 @@ export default {
           },
         },
       });
+    },
+    async showConfirm() {
+      const confirmed = await this.$refs.confirmDialog.open({
+        title: 'Generate Report',
+        message: `Are you sure you want 
+        to Create this Report?`,
+      });
+
+      if (confirmed) {
+        console.log('User clicked Yes');
+      } else {
+        console.log('User clicked No');
+      }
     },
   },
 };

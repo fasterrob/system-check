@@ -11,10 +11,11 @@
         ></v-select>
         <v-text-field
           v-model="selectDate"
-          label="Date"
-          type="date"
+          label="Month & Year"
+          type="month"
           outlined
         ></v-text-field>
+        {{ selectDate }}
         <v-file-input
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"
@@ -43,7 +44,7 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      tableNames: ['BRLN', 'TYM', 'BURAPA'],
+      tableNames: [],
       file: null,
       loading: false,
       selectedTable: '',
@@ -66,7 +67,7 @@ export default {
     async fetchSite() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/table-name');
+        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
 
         // Convert array of arrays to array of objects
         this.tableNames = res.data.site_name.map((item) => item[1]);
@@ -83,7 +84,7 @@ export default {
       let formData = new FormData();
       formData.append('file', this.file);
       formData.append('table_name', this.selectedTable);
-      formData.append('selectDate', this.selectDate);
+      formData.append('selectDate', this.selectDate + '-01');
       formData.append('year', this.yearFromSelectDate);
       console.log(formData);
       try {

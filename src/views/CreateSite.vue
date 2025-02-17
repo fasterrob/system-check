@@ -77,7 +77,7 @@ export default {
     async fetchData() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/table-name');
+        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
 
         // Convert array of arrays to array of objects
         this.siteList = res.data.site_name.map((item) => ({
@@ -99,7 +99,7 @@ export default {
       this.loading = true;
       try {
         const data = { site: this.siteName };
-        const res = await axios.post('http://127.0.0.1:8000/create-site', data);
+        const res = await axios.post('http://127.0.0.1:8000/site', data);
 
         console.log(res);
 
@@ -126,7 +126,7 @@ export default {
       try {
         // Perform the deletion API call
         const res = await axios.delete(
-          `http://127.0.0.1:8000/delete-site/${this.siteToDelete.id}`,
+          `http://127.0.0.1:8000/site/delete-site/${this.siteToDelete.id}`,
         );
         this.siteList = this.siteList.filter(
           (site) => site.id !== this.siteToDelete.id,
