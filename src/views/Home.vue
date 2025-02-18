@@ -366,6 +366,47 @@ export default {
       }
     },
 
+    async generateReport() {
+      this.loading = true;
+      try {
+        const response = await axios.get(
+          'http://127.0.0.1:8000/dashboard/generate-report',
+          {
+            params: {
+              site: this.selectedTable,
+              start_date: this.startDate,
+              end_date: this.endDate,
+            },
+            responseType: 'blob', // Important for file download
+          },
+        );
+
+        // Create a URL for the Blob response
+        const blob = new Blob([response.data], {
+          type: response.headers['content-type'],
+        });
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a temporary download link and click it
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute(
+          'download',
+          `HealthCheckReport_${this.selectedTable}_${this.startDate}_${this.endDate}.xlsx`,
+        );
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error generating report:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
     renderMemoryChart() {
       if (!this.$refs.memoryChart) return;
       if (this.memoryChartInstance) {
@@ -446,7 +487,7 @@ export default {
     async showConfirm() {
       const confirmed = await this.$refs.confirmDialog.open({
         title: 'Generate Report',
-        message: `Are you sure you want 
+        message: `Are you sure you want
         to Create this Report?`,
       });
 
