@@ -19,7 +19,7 @@
         <v-file-input
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"
-          accept=".csv,.xlsx,.txt,.html"
+          accept="*"
         ></v-file-input>
         <v-btn :disabled="!file" color="primary" @click="uploadFile"
           >Upload</v-btn

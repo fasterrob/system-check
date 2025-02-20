@@ -493,8 +493,31 @@ export default {
 
       if (confirmed) {
         console.log('User clicked Yes');
+        this.downloadReport();
       } else {
         console.log('User clicked No');
+      }
+    },
+
+    async downloadReport() {
+      this.loading = true;
+      try {
+        const response = await axios.get(
+          'http://127.0.0.1:8000/dashboard/generate-report',
+          {
+            params: {
+              site: this.selectedTable,
+              start_date: this.startDate,
+              end_date: this.endDate,
+            },
+            // responseType: 'blob',
+          },
+        );
+        console.log(response);
+      } catch (error) {
+        console.error('Error generating report:', error);
+      } finally {
+        this.loading = false;
       }
     },
   },
