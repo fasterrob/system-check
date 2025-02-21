@@ -21,7 +21,13 @@
     <v-card class="mt-5">
       <v-card-title>Existing Sites</v-card-title>
       <v-card-text>
-        <v-data-table :headers="siteHeaders" :items="siteList" dense>
+        <v-data-table
+          :headers="siteHeaders"
+          :items="siteList"
+          :items-per-page="5"
+          :items-per-page-options="[5, 10, 20]"
+          dense
+        >
           <template v-slot:item.created_at="{ item }">
             {{ formatDate(item.created_at) }}
           </template>
@@ -63,8 +69,8 @@ export default {
       siteHeaders: [
         { title: 'ID', key: 'id' },
         { title: 'Site Name', key: 'name' },
-        { title: 'Created At', key: 'created_at' },
-        { title: 'Actions', key: 'actions' },
+        { title: 'Created At', key: 'created_at', align: 'end' },
+        { title: 'Actions', key: 'actions', align: 'end' },
       ],
       deleteDialog: false,
       siteToDelete: null, // Site to delete

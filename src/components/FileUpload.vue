@@ -6,35 +6,50 @@
         <v-select
           v-model="selectedTable"
           :items="tableNames"
+          item-title="name"
+          item-value="id"
           label="Select Table"
           outlined
         ></v-select>
+
         <v-text-field
           v-model="selectDate"
           label="Month & Year"
           type="month"
           outlined
         ></v-text-field>
-        {{ selectDate + '-01' }}
+
+        <p>Selected Date: {{ formattedDate }}</p>
+
         <v-file-input
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"
           accept="*"
         ></v-file-input>
-        <v-btn :disabled="!file" color="primary" @click="uploadFile"
-          >Upload</v-btn
+
+        <v-btn
+          :disabled="!file || !selectedTable"
+          color="primary"
+          @click="uploadFile"
         >
+          Upload
+        </v-btn>
       </v-card-text>
+
       <v-progress-circular
         v-if="loading"
         indeterminate
         color="primary"
       ></v-progress-circular>
-    </v-card>
 
-    <v-alert v-if="message" type="success" class="mt-3">
-      {{ message }}
-    </v-alert>
+      <v-alert
+        v-if="message"
+        :type="uploadSuccess ? 'success' : 'error'"
+        class="mt-3"
+      >
+        {{ message }}
+      </v-alert>
+    </v-card>
   </v-container>
 </template>
 
@@ -47,13 +62,21 @@ export default {
       tableNames: [],
       file: null,
       loading: false,
-      selectedTable: '',
+      selectedTable: null, // Store selected table as object { id, name }
       message: '',
+      uploadSuccess: false,
       selectDate: '',
-      selectedYear: new Date().getFullYear(), // Default to the current year
     };
   },
   computed: {
+    formattedDate() {
+      return this.selectDate ? `${this.selectDate}-01` : '';
+    },
+    selectedTableObject() {
+      return (
+        this.tableNames.find((table) => table.id === this.selectedTable) || {}
+      );
+    },
     yearFromSelectDate() {
       return this.selectDate
         ? this.selectDate.split('-')[0]
@@ -68,34 +91,41 @@ export default {
       this.loading = true;
       try {
         const res = await axios.get('http://127.0.0.1:8000/get/table-name');
+        const rawData = res.data.site_name;
 
-        // Convert array of arrays to array of objects
-        this.tableNames = res.data.site_name.map((item) => item[1]);
+        // Convert array to [{ id, name }]
+        this.tableNames = rawData.map(([id, name]) => ({ id, name }));
+        console.log(this.tableNames);
       } catch (e) {
         console.error('Fetch failed:', e);
-        this.message = 'Failed to fetch sites.';
+        this.message = 'Failed to fetch table names.';
+        this.uploadSuccess = false;
       } finally {
         this.loading = false;
       }
     },
     async uploadFile() {
-      if (!this.file) return;
+      if (!this.file || !this.selectedTable) return;
       this.loading = true;
+
       let formData = new FormData();
-      formData.append('file', this.file);
-      formData.append('table_name', this.selectedTable);
-      formData.append('selectDate', this.selectDate + '-01');
+      formData.append('file', this.file); // Get the first file
+      formData.append('table_id', this.selectedTableObject.id); // Send ID
+      formData.append('table_name', this.selectedTableObject.name); // Send Name
+      formData.append('selectDate', this.formattedDate);
       formData.append('year', this.yearFromSelectDate);
-      console.log(formData);
+
       try {
         const response = await axios.post(
           'http://127.0.0.1:8000/upload',
           formData,
         );
         this.message = response.data.message;
+        this.uploadSuccess = true;
       } catch (error) {
         console.error('Upload failed:', error);
         this.message = 'Upload failed!';
+        this.uploadSuccess = false;
       } finally {
         this.loading = false;
       }
