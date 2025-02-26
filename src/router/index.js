@@ -7,6 +7,7 @@ const routes = [
   { path: '/', component: Home },
   { path: '/upload', component: Upload },
   { path: '/create-site', component: CreateSite },
+  { path: '/firewall', component: () => import('../views/Firewall.vue') },
 ];
 
 const router = createRouter({

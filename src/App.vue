@@ -16,6 +16,14 @@
           Upload Logs
         </v-list-item>
       </v-list>
+      <v-divider></v-divider>
+      <v-list>
+        <v-list-item title="Firewall" />
+        <v-divider></v-divider>
+        <v-list-item link to="/firewall" prepend-icon="mdi-wall-fire">
+          Dashboard
+        </v-list-item>
+      </v-list>
     </v-navigation-drawer>
 
     <!-- App Bar -->
