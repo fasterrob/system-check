@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <!-- Date Range Picker (Outside the Card) -->
+    <!-- Date Range Picker -->
     <v-row justify="end" class="mb-3">
       <v-col cols="3">
         <v-menu v-model="startDatePicker" :close-on-content-click="false">
@@ -39,6 +39,7 @@
       </v-col>
     </v-row>
 
+    <!-- Tabs -->
     <v-card>
       <v-tabs v-model="tab">
         <v-tab value="total">Total Bandwidth</v-tab>
@@ -47,44 +48,41 @@
       </v-tabs>
 
       <v-window v-model="tab">
-        <!-- Total Bandwidth -->
         <v-window-item value="total">
           <v-card class="pa-4">
             <v-card-title>Total Bandwidth Usage</v-card-title>
-            <v-card-text>
-              <canvas ref="totalChart"></canvas>
-            </v-card-text>
+            <v-card-text><canvas ref="totalChart"></canvas></v-card-text>
             <v-data-table
-              :headers="totalHeaders"
-              :items="totalData"
+              :headers="totalDataHeader"
+              :items="totalDataTable"
+              :items-per-page="5"
+              class="elevation-1"
             ></v-data-table>
           </v-card>
         </v-window-item>
 
-        <!-- Sent Bandwidth -->
         <v-window-item value="sent">
           <v-card class="pa-4">
             <v-card-title>Sent Bandwidth Usage</v-card-title>
-            <v-card-text>
-              <canvas ref="sentChart"></canvas>
-            </v-card-text>
+            <v-card-text><canvas ref="sentChart"></canvas></v-card-text>
             <v-data-table
-              :headers="sentHeaders"
-              :items="sentData"
+              :headers="sentDataHeader"
+              :items="sentDataTable"
+              :items-per-page="5"
+              class="elevation-1"
             ></v-data-table>
           </v-card>
         </v-window-item>
 
-        <!-- Received Bandwidth -->
         <v-window-item value="receive">
           <v-card class="pa-4">
             <v-card-title>Received Bandwidth Usage</v-card-title>
-            <v-card-text>
-              <canvas ref="receiveChart"></canvas>
-            </v-card-text>
+            <v-card-text><canvas ref="receiveChart"></canvas></v-card-text>
             <v-data-table
-              :headers="receiveHeaders"
-              :items="receiveData"
+              :headers="receiveDataHeader"
+              :items="receiveDataTable"
+              :items-per-page="5"
+              class="elevation-1"
             ></v-data-table>
           </v-card>
         </v-window-item>
@@ -95,36 +93,47 @@
 
 <script>
 import api from '@/plugins/axios';
-import { Chart } from 'chart.js/auto';
+import Chart from 'chart.js/auto';
+import downsamplePlugin from 'chartjs-plugin-downsample';
+
+// Ensure the plugin is correctly registered
+if (downsamplePlugin && downsamplePlugin.id) {
+  Chart.register(downsamplePlugin);
+} else {
+  console.warn('Downsample plugin not properly imported');
+}
 
 export default {
   data() {
     return {
       tab: 'total',
-      startDate: new Date('2024-02-01'), // Store as Date object
-      endDate: new Date('2024-02-29'), // Store as Date object
-      formattedStartDate: '01-FEB-24',
-      formattedEndDate: '29-FEB-24',
+      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate: new Date(),
+      formattedStartDate: '01-DEC-24',
+      formattedEndDate: '31-DEC-24',
       startDatePicker: false,
       endDatePicker: false,
-      totalHeaders: [
-        { title: 'Date', key: 'l_date' },
-        { title: 'Time', key: 'l_time' },
-        { title: 'Usage (MB)', key: 'total_bandwidth' },
-      ],
       totalData: [],
-      sentHeaders: [
-        { title: 'Date', key: 'l_date' },
-        { title: 'Time', key: 'l_time' },
-        { title: 'Sent (MB)', key: 'sent_bandwidth' },
+      totalDataTable: [],
+      totalDataHeader: [
+        { title: 'Date', key: 'L_DATE' },
+        { title: 'Time', key: 'L_TIME' },
+        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
       ],
       sentData: [],
-      receiveHeaders: [
-        { title: 'Date', key: 'l_date' },
-        { title: 'Time', key: 'l_time' },
-        { title: 'Received (MB)', key: 'receive_bandwidth' },
+      sentDataTable: [],
+      sentDataHeader: [
+        { title: 'Date', key: 'L_DATE' },
+        { title: 'Time', key: 'L_TIME' },
+        { title: 'Sent Bandwidth (MB)', key: 'SENT_BANDWIDTH' },
       ],
       receiveData: [],
+      receiveDataTable: [],
+      receiveDataHeader: [
+        { title: 'Date', key: 'L_DATE' },
+        { title: 'Time', key: 'L_TIME' },
+        { title: 'Received Bandwidth (MB)', key: 'RECEIVE_BANDWIDTH' },
+      ],
       totalChartInstance: null,
       sentChartInstance: null,
       receiveChartInstance: null,
@@ -142,104 +151,103 @@ export default {
       this.fetchData(this.tab);
     },
     formatDate(date) {
-      if (!(date instanceof Date)) return ''; // Ensure valid date object
+      if (!(date instanceof Date)) return '';
       const day = String(date.getDate()).padStart(2, '0');
       const month = date
         .toLocaleString('en-US', { month: 'short' })
-        .toUpperCase(); // Convert to MON
-      const year = date.getFullYear().toString().slice(-2); // Extract last two digits of year
+        .toUpperCase();
+      const year = date.getFullYear().toString().slice(-2);
       return `${day}-${month}-${year}`;
     },
     async fetchData(type) {
       console.log(
-        `Fetching data for ${type} from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
+        `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
       );
       try {
-        let response;
+        let response = await api.get(`/firewall/${type}-bandwidth`, {
+          params: {
+            start_date: this.formattedStartDate,
+            end_date: this.formattedEndDate,
+          },
+        });
+
+        let rawData = response.data.site_name;
+
+        let groupedData = this.aggregateData(
+          rawData,
+          'L_DATE',
+          type === 'total'
+            ? 'TOTAL_BANDWIDTH'
+            : type === 'sent'
+              ? 'SENT_BANDWIDTH'
+              : 'RECEIVE_BANDWIDTH',
+        );
 
         if (type === 'total') {
-          response = await api.get('/total-bandwidth', {
-            params: {
-              start_date: this.formattedStartDate,
-              end_date: this.formattedEndDate,
-            },
-          });
-          this.totalData = response.data.site_name;
+          this.totalDataTable = rawData;
+          this.totalData = groupedData;
           this.renderChart(
             'totalChart',
             'Total Bandwidth (MB)',
             this.totalData,
-            'total_bandwidth',
+            'TOTAL_BANDWIDTH',
           );
         } else if (type === 'sent') {
-          response = await api.get('/sent-bandwidth', {
-            params: {
-              start_date: this.formattedStartDate,
-              end_date: this.formattedEndDate,
-            },
-          });
-          this.sentData = response.data.site_name;
+          this.sentDataTable = rawData;
+          this.sentData = groupedData;
           this.renderChart(
             'sentChart',
             'Sent Bandwidth (MB)',
             this.sentData,
-            'sent_bandwidth',
+            'SENT_BANDWIDTH',
           );
         } else if (type === 'receive') {
-          response = await api.get('/receive-bandwidth', {
-            params: {
-              start_date: this.formattedStartDate,
-              end_date: this.formattedEndDate,
-            },
-          });
-          this.receiveData = response.data.site_name;
+          this.receiveDataTable = rawData;
+          this.receiveData = groupedData;
           this.renderChart(
             'receiveChart',
             'Received Bandwidth (MB)',
             this.receiveData,
-            'receive_bandwidth',
+            'RECEIVE_BANDWIDTH',
           );
         }
       } catch (error) {
         console.error(`Error fetching ${type} data:`, error);
       }
     },
-    renderChart(ref, title, data, valueKey) {
-      if (!this.$refs[ref]) return;
+    aggregateData(data, dateKey, valueKey) {
+      let aggregated = {};
+      data.forEach((row) => {
+        let timestamp = row[dateKey].slice(0, 13);
+        if (!aggregated[timestamp]) {
+          aggregated[timestamp] = { L_DATE: timestamp, [valueKey]: 0 };
+        }
+        aggregated[timestamp][valueKey] += parseFloat(row[valueKey]);
+      });
+      return Object.values(aggregated);
+    },
+    renderChart(chartRef, label, data, dataKey) {
+      if (this[chartRef]) this[chartRef].destroy();
 
-      const chartInstances = {
-        totalChart: 'totalChartInstance',
-        sentChart: 'sentChartInstance',
-        receiveChart: 'receiveChartInstance',
-      };
-
-      if (this[chartInstances[ref]]) {
-        this[chartInstances[ref]].destroy();
-      }
-
-      this[chartInstances[ref]] = new Chart(this.$refs[ref], {
+      let ctx = this.$refs[chartRef].getContext('2d');
+      this[chartRef] = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map((d) => d.l_time),
+          labels: data.map((d) => d.L_DATE),
           datasets: [
             {
-              label: title,
-              data: data.map((d) => d[valueKey]),
+              label,
+              data: data.map((d) => d[dataKey]),
               borderColor: 'blue',
-              fill: true,
+              borderWidth: 1,
             },
           ],
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'top' },
-            title: { display: true, text: title },
-            tooltip: { mode: 'index', intersect: false },
-          },
-          scales: {
-            x: { title: { display: true, text: 'Time' } },
-            y: { title: { display: true, text: title }, min: 0 },
+            downsample: { enabled: true, threshold: 5000, auto: false },
           },
         },
       });

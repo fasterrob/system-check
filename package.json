@@ -13,6 +13,7 @@
     "@mdi/font": "^7.4.47",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
+    "chartjs-plugin-downsample": "^1.1.0",
     "roboto-fontface": "*",
     "vue": "^3.4.31",
     "vuetify": "^3.6.14"

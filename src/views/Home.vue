@@ -53,13 +53,16 @@
         </v-row>
 
         <v-alert
-          v-if="selectedTable && startDate && endDate"
+          v-if="selectedTable && startDate && endDate && !error"
           type="info"
           class="mt-3"
         >
           Selected Site: <strong>{{ selectedTable }}</strong> <br />
           Date Range: <strong>{{ startDate }}</strong> to
           <strong>{{ endDate }}</strong>
+        </v-alert>
+        <v-alert v-if="error" type="error" class="mt-3">
+          {{ error }}
         </v-alert>
       </v-card-text>
     </v-card>
@@ -182,6 +185,7 @@ export default {
   components: { ConfirmDialog },
   data() {
     return {
+      error: '',
       loading: false,
       selectedTable: '',
       startDate: '',
@@ -271,6 +275,8 @@ export default {
     },
     async fetchData() {
       this.loading = true;
+      this.error = '';
+
       try {
         const response = await api.get('/dashboard/dashboard-usage', {
           params: {
@@ -280,82 +286,128 @@ export default {
           },
         });
 
+        // Clear previous chart instances
+        if (this.cpuChartInstance) {
+          this.cpuChartInstance.destroy();
+          this.cpuChartInstance = null;
+        }
+        if (this.memoryChartInstance) {
+          this.memoryChartInstance.destroy();
+          this.memoryChartInstance = null;
+        }
+
+        // Check if response data is empty
+        if (!response.data || Object.keys(response.data).length === 0) {
+          this.resetData();
+          this.error = 'No data found for the selected site and date range';
+          return;
+        }
+
         // Process CPU data
-        this.cpuData = response.data.cpu_usage.map((item) => ({
-          timestamp: item.datetime_log.split(' ')[0],
-          user: item.user_percent,
-          system: item.system_percent,
-          iowait: item.iowait_percent,
-          idle: item.idle_percent,
-        }));
+        this.cpuData =
+          response.data.cpu_usage?.map((item) => ({
+            timestamp: item.datetime_log.split(' ')[0],
+            user: item.user_percent,
+            system: item.system_percent,
+            iowait: item.iowait_percent,
+            idle: item.idle_percent,
+          })) || [];
 
         this.cpuSummary = [
-          { type: 'User %', ...response.data.cpu_summary.user_percent },
-          { type: 'System %', ...response.data.cpu_summary.system_percent },
-          { type: 'I/O Wait %', ...response.data.cpu_summary.iowait_percent },
+          {
+            type: 'User %',
+            ...(response.data.cpu_summary?.user_percent || {}),
+          },
+          {
+            type: 'System %',
+            ...(response.data.cpu_summary?.system_percent || {}),
+          },
+          {
+            type: 'I/O Wait %',
+            ...(response.data.cpu_summary?.iowait_percent || {}),
+          },
         ];
 
-        this.memoryData = response.data.memory_usage.map((item) => ({
-          timestamp: item.datetime_log.split(' ')[0],
-          kbswpfree: item.kbswpfree,
-          kbswpused: item.kbswpused,
-          swpused_percent: item.swpused_percent,
-        }));
+        this.memoryData =
+          response.data.memory_usage?.map((item) => ({
+            timestamp: item.datetime_log.split(' ')[0],
+            kbswpfree: item.kbswpfree,
+            kbswpused: item.kbswpused,
+            swpused_percent: item.swpused_percent,
+          })) || [];
 
-        this.fsData = response.data.filesystem_comparison.map((item) => ({
-          date: item.entrydate.split(' ')[0],
-          filesystem: item.filesystem,
-          used: item.used,
-          available: item.available,
-          usepercent: item.usepercent,
-        }));
+        this.fsData =
+          response.data.filesystem_comparison?.map((item) => ({
+            date: item.entrydate.split(' ')[0],
+            filesystem: item.filesystem,
+            used: item.used,
+            available: item.available,
+            usepercent: item.usepercent,
+          })) || [];
 
-        this.tbData = response.data.tablespace_usage.map((item) => ({
-          datetime_log: item.datetime_log.split(' ')[0],
-          status: item.status,
-          name: item.name,
-          type: item.type,
-          extent_management: item.extent_management,
-          size_mb: item.size_mb,
-          free_mb: item.free_mb,
-          free_percent: parseFloat(item.free_percent),
-        }));
+        this.tbData =
+          response.data.tablespace_usage?.map((item) => ({
+            datetime_log: item.datetime_log.split(' ')[0],
+            status: item.status,
+            name: item.name,
+            type: item.type,
+            extent_management: item.extent_management,
+            size_mb: item.size_mb,
+            free_mb: item.free_mb,
+            free_percent: parseFloat(item.free_percent),
+          })) || [];
 
         this.tbSummary = [
           {
             metric: 'Allocated',
-            mb: response.data.tablespace_summary.total_size,
-            gb: (response.data.tablespace_summary.total_size / 1024).toFixed(2),
+            mb: response.data.tablespace_summary?.total_size || 0,
+            gb: (
+              (response.data.tablespace_summary?.total_size || 0) / 1024
+            ).toFixed(2),
           },
           {
             metric: 'Used',
             mb:
-              response.data.tablespace_summary.total_size -
-              response.data.tablespace_summary.total_free,
+              (response.data.tablespace_summary?.total_size || 0) -
+              (response.data.tablespace_summary?.total_free || 0),
             gb: (
-              (response.data.tablespace_summary.total_size -
-                response.data.tablespace_summary.total_free) /
+              ((response.data.tablespace_summary?.total_size || 0) -
+                (response.data.tablespace_summary?.total_free || 0)) /
               1024
             ).toFixed(2),
           },
           {
             metric: 'Used(No UNDO, TEMP)',
             mb:
-              response.data.tablespace_summary.without_temp_undo_size -
-              response.data.tablespace_summary.without_temp_undo_free,
+              (response.data.tablespace_summary?.without_temp_undo_size || 0) -
+              (response.data.tablespace_summary?.without_temp_undo_free || 0),
             gb: (
-              (response.data.tablespace_summary.without_temp_undo_size -
-                response.data.tablespace_summary.without_temp_undo_free) /
+              ((response.data.tablespace_summary?.without_temp_undo_size || 0) -
+                (response.data.tablespace_summary?.without_temp_undo_free ||
+                  0)) /
               1024
             ).toFixed(2),
           },
         ];
 
-        // Render charts
-        this.renderCPUChart();
-        this.renderMemoryChart();
+        // If no data, show error and reset all variables
+        if (
+          this.cpuData.length === 0 &&
+          this.memoryData.length === 0 &&
+          this.fsData.length === 0 &&
+          this.tbData.length === 0
+        ) {
+          this.resetData();
+          this.error = 'No data found for the selected site and date range';
+          return;
+        }
+
+        // Render charts only if data exists
+        if (this.cpuData.length > 0) this.renderCPUChart();
+        if (this.memoryData.length > 0) this.renderMemoryChart();
       } catch (error) {
         console.error('Error fetching data:', error);
+        this.error = 'An error occurred while fetching data';
       } finally {
         this.loading = false;
       }
@@ -494,22 +546,38 @@ export default {
     async downloadReport() {
       this.loading = true;
       try {
-        const response = await axios.get(
-          'http://127.0.0.1:8000/dashboard/generate-report',
-          {
-            params: {
-              site: this.selectedTable,
-              start_date: this.startDate,
-              end_date: this.endDate,
-            },
-            // responseType: 'blob',
+        const response = await api.get('/dashboard/generate-report', {
+          params: {
+            site: this.selectedTable,
+            start_date: this.startDate,
+            end_date: this.endDate,
           },
-        );
+          // responseType: 'blob',
+        });
         console.log(response);
       } catch (error) {
         console.error('Error generating report:', error);
       } finally {
         this.loading = false;
+      }
+    },
+    resetData() {
+      this.cpuData = [];
+      this.cpuSummary = [];
+      this.memoryData = [];
+      this.fsData = [];
+      this.tbData = [];
+      this.tbSummary = [];
+      this.starupData = [];
+
+      // Destroy chart instances if exist
+      if (this.cpuChartInstance) {
+        this.cpuChartInstance.destroy();
+        this.cpuChartInstance = null;
+      }
+      if (this.memoryChartInstance) {
+        this.memoryChartInstance.destroy();
+        this.memoryChartInstance = null;
       }
     },
   },
