@@ -7,7 +7,14 @@ const routes = [
   { path: '/', component: Home },
   { path: '/upload', component: Upload },
   { path: '/create-site', component: CreateSite },
-  { path: '/firewall', component: () => import('../views/Firewall.vue') },
+  { path: '/bandwidth', component: () => import('../views/Bandwidth.vue') },
+  {
+    path: '/denied-access',
+    component: () => import('../views/DeniedAccess.vue'),
+  },
+  { path: '/threat', component: () => import('../views/Threat.vue') },
+  { path: '/antivirus', component: () => import('../views/Antivirus.vue') },
+  { path: '/ips', component: () => import('../views/Ips.vue') },
 ];
 
 const router = createRouter({

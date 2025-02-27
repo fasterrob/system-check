@@ -54,7 +54,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/plugins/axios';
 
 export default {
   data() {
@@ -90,7 +90,7 @@ export default {
     async fetchSite() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
+        const res = await api.get('/get/table-name');
         const rawData = res.data.site_name;
 
         // Convert array to [{ id, name }]
@@ -116,10 +116,7 @@ export default {
       formData.append('year', this.yearFromSelectDate);
 
       try {
-        const response = await axios.post(
-          'http://127.0.0.1:8000/upload',
-          formData,
-        );
+        const response = await api.post('/upload', formData);
         this.message = response.data.message;
         this.uploadSuccess = true;
       } catch (error) {

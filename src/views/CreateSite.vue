@@ -57,7 +57,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/plugins/axios';
 
 export default {
   data() {
@@ -83,7 +83,7 @@ export default {
     async fetchData() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
+        const res = await api.get('/get/table-name');
 
         // Convert array of arrays to array of objects
         this.siteList = res.data.site_name.map((item) => ({
@@ -105,7 +105,7 @@ export default {
       this.loading = true;
       try {
         const data = { site: this.siteName };
-        const res = await axios.post('http://127.0.0.1:8000/site', data);
+        const res = await api.post('/site', data);
 
         console.log(res);
 
@@ -131,8 +131,8 @@ export default {
       this.loading = true;
       try {
         // Perform the deletion API call
-        const res = await axios.delete(
-          `http://127.0.0.1:8000/site/delete-site/${this.siteToDelete.id}`,
+        const res = await api.delete(
+          `/site/delete-site/${this.siteToDelete.id}`,
         );
         this.siteList = this.siteList.filter(
           (site) => site.id !== this.siteToDelete.id,

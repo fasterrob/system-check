@@ -174,7 +174,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/plugins/axios';
 import Chart from 'chart.js/auto';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
@@ -258,7 +258,7 @@ export default {
     async fetchSite() {
       this.loading = true;
       try {
-        const res = await axios.get('http://127.0.0.1:8000/get/table-name');
+        const res = await api.get('/get/table-name');
 
         // Convert array of arrays to array of objects
         this.tableNames = res.data.site_name.map((item) => item[1]);
@@ -272,16 +272,13 @@ export default {
     async fetchData() {
       this.loading = true;
       try {
-        const response = await axios.get(
-          'http://127.0.0.1:8000/dashboard/dashboard-usage',
-          {
-            params: {
-              site: this.selectedTable,
-              start_date: this.startDate,
-              end_date: this.endDate,
-            },
+        const response = await api.get('/dashboard/dashboard-usage', {
+          params: {
+            site: this.selectedTable,
+            start_date: this.startDate,
+            end_date: this.endDate,
           },
-        );
+        });
 
         // Process CPU data
         this.cpuData = response.data.cpu_usage.map((item) => ({
@@ -304,8 +301,6 @@ export default {
           kbswpused: item.kbswpused,
           swpused_percent: item.swpused_percent,
         }));
-
-        console.log(this.memoryData);
 
         this.fsData = response.data.filesystem_comparison.map((item) => ({
           date: item.entrydate.split(' ')[0],
@@ -369,17 +364,14 @@ export default {
     async generateReport() {
       this.loading = true;
       try {
-        const response = await axios.get(
-          'http://127.0.0.1:8000/dashboard/generate-report',
-          {
-            params: {
-              site: this.selectedTable,
-              start_date: this.startDate,
-              end_date: this.endDate,
-            },
-            responseType: 'blob', // Important for file download
+        const response = await api.get('/dashboard/generate-report', {
+          params: {
+            site: this.selectedTable,
+            start_date: this.startDate,
+            end_date: this.endDate,
           },
-        );
+          responseType: 'blob', // Important for file download
+        });
 
         // Create a URL for the Blob response
         const blob = new Blob([response.data], {
