@@ -22,24 +22,26 @@
         :items="itemsTopic"
         label="Select Topic"
         prepend-icon="mdi-book"
-      >
-      </v-select>
+      ></v-select>
 
       <v-file-input
-        v-model="selectedFile"
+        v-model="selectedFiles"
         label="Select Firewall Log File"
         prepend-icon="mdi-paperclip"
         :accept="selectedFileType === 'log' ? '.log' : '.csv'"
         :multiple="selectedFileType === 'log'"
+        show-size
+        chips
       ></v-file-input>
 
       <v-btn
         color="primary"
         class="mt-3"
         :loading="isUploading"
-        @click="uploadFile"
-        >Upload</v-btn
+        @click="uploadFiles"
       >
+        Upload
+      </v-btn>
     </v-card>
   </v-container>
 </template>
@@ -50,15 +52,14 @@ import api from '@/plugins/axios';
 
 const selectedFileType = ref('csv');
 const selectedYear = ref(new Date().getFullYear());
-const selectedFile = ref(null);
+const selectedFiles = ref([]);
 const isUploading = ref(false);
 const topic = ref(null);
 const itemsTopic = ref(['Antivirus Log', 'IPS Log', 'Firewall Log']);
 
-const uploadFile = async () => {
-  let url = 'upload-csv';
-  if (!selectedFile.value) {
-    alert('Please select a file to upload.');
+const uploadFiles = async () => {
+  if (!selectedFiles.value.length) {
+    alert('Please select at least one file to upload.');
     return;
   }
   if (!topic.value) {
@@ -69,12 +70,14 @@ const uploadFile = async () => {
     alert('Please select a year.');
     return;
   }
-  url = selectedFileType === 'log' ? 'upload-log' : 'upload-csv';
 
+  const url = selectedFileType.value === 'log' ? 'upload-log' : 'upload-csv';
   isUploading.value = true;
 
   const formData = new FormData();
-  formData.append('file', selectedFile); // v-file-input returns an array
+  selectedFiles.value.forEach((file) => {
+    formData.append('files', file);
+  });
   formData.append('year', selectedYear.value);
   formData.append('topic', topic.value);
 
