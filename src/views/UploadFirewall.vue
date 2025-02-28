@@ -58,10 +58,6 @@ const topic = ref(null);
 const itemsTopic = ref(['Antivirus Log', 'IPS Log', 'Firewall Log']);
 
 const uploadFiles = async () => {
-  if (!selectedFiles.value.length) {
-    alert('Please select at least one file to upload.');
-    return;
-  }
   if (!topic.value) {
     alert('Please select a topic.');
     return;
@@ -75,9 +71,13 @@ const uploadFiles = async () => {
   isUploading.value = true;
 
   const formData = new FormData();
-  selectedFiles.value.forEach((file) => {
-    formData.append('files', file);
-  });
+  if (selectedFileType.value === 'csv') {
+    formData.append('file', selectedFiles.value);
+  } else {
+    selectedFiles.value.forEach((file) => {
+      formData.append('files', file);
+    });
+  }
   formData.append('year', selectedYear.value);
   formData.append('topic', topic.value);
 
