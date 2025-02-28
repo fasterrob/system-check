@@ -74,6 +74,14 @@
         >
           IPS
         </v-list-item>
+        <v-list-item
+          link
+          to="/uploadfirewall"
+          prepend-icon="mdi-upload"
+          @click="title = 'Firewall'"
+        >
+          Upload Firewall logs
+        </v-list-item>
       </v-list>
     </v-navigation-drawer>
 

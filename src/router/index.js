@@ -15,6 +15,10 @@ const routes = [
   { path: '/threat', component: () => import('../views/Threat.vue') },
   { path: '/antivirus', component: () => import('../views/Antivirus.vue') },
   { path: '/ips', component: () => import('../views/Ips.vue') },
+  {
+    path: '/uploadfirewall',
+    component: () => import('../views/UploadFirewall.vue'),
+  },
 ];
 
 const router = createRouter({
