@@ -46,8 +46,8 @@
           <v-card class="pa-4">
             <v-card-title>Denied Access</v-card-title>
             <v-data-table
-              :headers="totalDataHeader"
-              :items="totalDataTable"
+              :headers="deniedHeader"
+              :items="deniedDataTable"
               :items-per-page="5"
               class="elevation-1"
             ></v-data-table>
@@ -80,46 +80,18 @@ export default {
       formattedEndDate: '31-DEC-24',
       startDatePicker: false,
       endDatePicker: false,
-      totalData: [],
-      totalDataTable: [],
-      totalDataHeader: [
+      deniedData: [],
+      deniedDataTable: [],
+      deniedHeader: [
         { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
+        { title: 'Remote IP', key: 'REMIP' },
+        { title: 'Description', key: 'LOGDESC' },
+        { title: 'Reason', key: 'REASON' },
+        { title: 'Fail Count', key: 'Fail Counts' },
       ],
-      sentData: [],
-      sentDataTable: [],
-      sentDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Sent Bandwidth (MB)', key: 'SENT_BANDWIDTH' },
-      ],
-      receiveData: [],
-      receiveDataTable: [],
-      receiveDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Received Bandwidth (MB)', key: 'RECEIVE_BANDWIDTH' },
-      ],
-      totalChartInstance: null,
-      sentChartInstance: null,
-      receiveChartInstance: null,
     };
   },
-  watch: {
-    tab(newTab) {
-      this.fetchData(newTab);
-    },
-  },
-  methods: {
-    updateFormattedDate() {
-      this.formattedStartDate = this.formatDate(this.startDate);
-      this.formattedEndDate = this.formatDate(this.endDate);
-      this.fetchData(this.tab);
-    },
+
     formatDate(date) {
       if (!(date instanceof Date)) return '';
       const day = String(date.getDate()).padStart(2, '0');
@@ -134,7 +106,7 @@ export default {
         `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
       );
       try {
-        let response = await api.get(`/firewall/${type}-bandwidth`, {
+        let response = await api.get(`/firewall/${type}-`, {
           params: {
             start_date: this.formattedStartDate,
             end_date: this.formattedEndDate,
@@ -142,45 +114,7 @@ export default {
         });
 
         let rawData = response.data.site_name;
-
-        let groupedData = this.aggregateData(
-          rawData,
-          'L_DATE',
-          type === 'total'
-            ? 'TOTAL_BANDWIDTH'
-            : type === 'sent'
-              ? 'SENT_BANDWIDTH'
-              : 'RECEIVE_BANDWIDTH',
-        );
-
-        if (type === 'total') {
-          this.totalDataTable = rawData;
-          this.totalData = groupedData;
-          this.renderChart(
-            'totalChart',
-            'Total Bandwidth (MB)',
-            this.totalData,
-            'TOTAL_BANDWIDTH',
-          );
-        } else if (type === 'sent') {
-          this.sentDataTable = rawData;
-          this.sentData = groupedData;
-          this.renderChart(
-            'sentChart',
-            'Sent Bandwidth (MB)',
-            this.sentData,
-            'SENT_BANDWIDTH',
-          );
-        } else if (type === 'receive') {
-          this.receiveDataTable = rawData;
-          this.receiveData = groupedData;
-          this.renderChart(
-            'receiveChart',
-            'Received Bandwidth (MB)',
-            this.receiveData,
-            'RECEIVE_BANDWIDTH',
-          );
-        }
+        
       } catch (error) {
         console.error(`Error fetching ${type} data:`, error);
       }
@@ -222,9 +156,5 @@ export default {
         },
       });
     },
-  },
-  mounted() {
-    this.fetchData(this.tab);
-  },
-};
+  };
 </script>
