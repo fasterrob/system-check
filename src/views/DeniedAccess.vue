@@ -41,46 +41,13 @@
 
     <!-- Tabs -->
     <v-card>
-      <v-tabs v-model="tab">
-        <v-tab value="total">Total Bandwidth</v-tab>
-        <v-tab value="sent">Sent Bandwidth</v-tab>
-        <v-tab value="receive">Received Bandwidth</v-tab>
-      </v-tabs>
-
       <v-window v-model="tab">
         <v-window-item value="total">
           <v-card class="pa-4">
-            <v-card-title>Total Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="totalChart"></canvas></v-card-text>
+            <v-card-title>Denied Access</v-card-title>
             <v-data-table
               :headers="totalDataHeader"
               :items="totalDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-
-        <v-window-item value="sent">
-          <v-card class="pa-4">
-            <v-card-title>Sent Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="sentChart"></canvas></v-card-text>
-            <v-data-table
-              :headers="sentDataHeader"
-              :items="sentDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-
-        <v-window-item value="receive">
-          <v-card class="pa-4">
-            <v-card-title>Received Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="receiveChart"></canvas></v-card-text>
-            <v-data-table
-              :headers="receiveDataHeader"
-              :items="receiveDataTable"
               :items-per-page="5"
               class="elevation-1"
             ></v-data-table>
@@ -116,6 +83,9 @@ export default {
       totalData: [],
       totalDataTable: [],
       totalDataHeader: [
+        { title: 'Date', key: 'L_DATE' },
+        { title: 'Time', key: 'L_TIME' },
+        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
         { title: 'Date', key: 'L_DATE' },
         { title: 'Time', key: 'L_TIME' },
         { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
