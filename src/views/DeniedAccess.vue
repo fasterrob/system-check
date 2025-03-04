@@ -1,7 +1,20 @@
 <template>
   <v-container>
-    <!-- Date Range Picker -->
     <v-row justify="end" class="mb-3">
+      <!-- Search Bar -->
+      <v-col cols="12" md="3" class="d-flex align-end">
+        <v-text-field
+          v-model="search_input"
+          @keyup.enter="fetchData"
+          label="Search"
+          variant="outlined"
+          append-inner-icon="mdi-magnify"
+          clearable
+          dense
+        ></v-text-field>
+      </v-col>
+
+      <!-- Date Range Picker -->
       <v-col cols="3">
         <v-menu v-model="startDatePicker" :close-on-content-click="false">
           <template v-slot:activator="{ props }">
@@ -19,7 +32,6 @@
           ></v-date-picker>
         </v-menu>
       </v-col>
-
       <v-col cols="3">
         <v-menu v-model="endDatePicker" :close-on-content-click="false">
           <template v-slot:activator="{ props }">
@@ -41,19 +53,15 @@
 
     <!-- Tabs -->
     <v-card>
-      <v-window v-model="tab">
-        <v-window-item value="total">
-          <v-card class="pa-4">
-            <v-card-title>Denied Access</v-card-title>
-            <v-data-table
-              :headers="deniedHeader"
-              :items="deniedDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-      </v-window>
+      <v-card class="pa-4">
+        <v-card-title>Denied Access</v-card-title>
+        <v-data-table
+          :headers="deniedHeader"
+          :items="deniedDataTable"
+          :items-per-page="5"
+          class="elevation-1"
+        ></v-data-table>
+      </v-card>
     </v-card>
   </v-container>
 </template>
@@ -80,6 +88,7 @@ export default {
       formattedEndDate: '31-DEC-24',
       startDatePicker: false,
       endDatePicker: false,
+      search_ip: '',
       deniedData: [],
       deniedDataTable: [],
       deniedHeader: [
@@ -92,6 +101,7 @@ export default {
     };
   },
 
+  methods: {
     formatDate(date) {
       if (!(date instanceof Date)) return '';
       const day = String(date.getDate()).padStart(2, '0');
@@ -101,22 +111,20 @@ export default {
       const year = date.getFullYear().toString().slice(-2);
       return `${day}-${month}-${year}`;
     },
-    async fetchData(type) {
-      console.log(
-        `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
-      );
+    async fetchData() {
       try {
-        let response = await api.get(`/firewall/${type}-`, {
+        let response = await api.get(`/firewall/denied-access`, {
           params: {
             start_date: this.formattedStartDate,
             end_date: this.formattedEndDate,
+            search_input: this.search_input,
           },
         });
 
-        let rawData = response.data.site_name;
-        
+        this.deniedDataTable = response.data.site_name;
+        console.log(response.data)
       } catch (error) {
-        console.error(`Error fetching ${type} data:`, error);
+        console.error(`Error fetching denied access data:`, error);
       }
     },
     aggregateData(data, dateKey, valueKey) {
@@ -130,31 +138,6 @@ export default {
       });
       return Object.values(aggregated);
     },
-    renderChart(chartRef, label, data, dataKey) {
-      if (this[chartRef]) this[chartRef].destroy();
-
-      let ctx = this.$refs[chartRef].getContext('2d');
-      this[chartRef] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map((d) => d.L_DATE),
-          datasets: [
-            {
-              label,
-              data: data.map((d) => d[dataKey]),
-              borderColor: 'blue',
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            downsample: { enabled: true, threshold: 5000, auto: true },
-          },
-        },
-      });
-    },
-  };
+  },
+};
 </script>
