@@ -38,12 +38,18 @@
     <v-card elevation="2">
       <v-card-title>Antivirus Log</v-card-title>
       <v-data-table
-        :headers="deniedHeader"
-        :items="deniedDataTable"
+        :headers="antivirusHeader"
+        :items="antivirusDataTable"
         :items-per-page="10"
         class="elevation-1"
         density="compact"
-      ></v-data-table>
+      >
+        <template v-slot:item.threatLevel="{ item }">
+          <v-chip :color="getChipColor(item.threatLevel)" dark>
+            {{ item.threatLevel }}
+          </v-chip>
+        </template>
+      </v-data-table>
     </v-card>
   </v-container>
 </template>
@@ -56,13 +62,16 @@ export default {
   setup() {
     const search_input = ref('');
     const startDate = ref(
-      new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]
+      new Date(new Date().setMonth(new Date().getMonth() - 1))
+        .toISOString()
+        .split('T')[0],
     );
     const endDate = ref(new Date().toISOString().split('T')[0]);
-    const deniedDataTable = ref([]);
-    const deniedHeader = ref([
+    const antivirusDataTable = ref([]);
+
+    const antivirusHeader = ref([
       { title: 'Date', key: 'Date' },
-      { title: 'Threat Level', key: 'Threat Level' },
+      { title: 'Threat Level', key: 'threatLevel' },
       { title: 'Source IP', key: 'Source' },
       { title: 'Destination IP', key: 'Destination' },
       { title: 'Victim User', key: 'User' },
@@ -79,7 +88,7 @@ export default {
             search_input: search_input.value,
           },
         });
-        deniedDataTable.value = response.data.site_name;
+        antivirusDataTable.value = response.data.site_name;
       } catch (error) {
         console.error(`Error fetching antivirus log data:`, error);
       }
@@ -87,13 +96,29 @@ export default {
 
     onMounted(fetchData);
 
+    const getChipColor = (level) => {
+      switch (level) {
+        case 'Critical':
+          return 'red';
+        case 'High':
+          return 'orange';
+        case 'Medium':
+          return '#ebcc02';
+        case 'Low':
+          return 'green';
+        default:
+          return 'grey';
+      }
+    };
+
     return {
       search_input,
       startDate,
       endDate,
-      deniedDataTable,
-      deniedHeader,
+      antivirusDataTable,
+      antivirusHeader,
       fetchData,
+      getChipColor,
     };
   },
 };
