@@ -33,10 +33,6 @@
         ></v-text-field>
       </v-col>
     </v-row>
-    <v-alert v-if="startDate && endDate" type="info" class="mt-3">
-      Date Range: <strong>{{ startDate }}</strong> to
-      <strong>{{ endDate }}</strong>
-    </v-alert>
 
     <!-- Denied Access Table -->
     <v-card elevation="2">
@@ -46,7 +42,7 @@
         <v-data-table
           :headers="deniedHeader"
           :items="deniedDataTable"
-          :items-per-page="5"
+          :items-per-page="10"
           density="compact"
         ></v-data-table>
       </v-card-text>
@@ -71,7 +67,7 @@ export default {
       { title: 'Remote IP', key: 'REMIP' },
       { title: 'Description', key: 'LOGDESC' },
       { title: 'Reason', key: 'REASON' },
-      { title: 'Fail Count', key: 'Fail Counts' },
+      { title: 'Fail Count', key: 'FAIL_COUNTS' },
     ]);
 
     const fetchData = async () => {
