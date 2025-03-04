@@ -67,6 +67,46 @@
       </v-card-text>
     </v-card>
 
+    <v-card v-show="instanceInfoData.length > 0" class="mt-5">
+      <v-row class="mt-3">
+        <v-col cols="6">
+          <v-card-title>Database and Instance Information</v-card-title>
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in instanceInfoData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-col>
+        <v-col cols="6">
+          <v-row>
+            <v-card-title>SGA Information</v-card-title>
+            <v-table dense class="custom-table">
+              <tbody>
+                <tr v-for="(item, index) in sgaData" :key="index">
+                  <td class="label">{{ item.label }}</td>
+                  <td class="value">{{ item.value }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-row>
+          <v-row>
+            <v-card-title>Buffer Cache Hit Ratio</v-card-title>
+            <v-table dense class="custom-table">
+              <tbody>
+                <tr v-for="(item, index) in bufferData" :key="index">
+                  <td class="label">{{ item.label }}</td>
+                  <td class="value">{{ item.value }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-row>
+        </v-col>
+      </v-row>
+    </v-card>
+
     <v-card v-show="cpuData.length > 0" class="mt-5">
       <v-card-title>CPU Usage</v-card-title>
       <v-card-text class="pb-0">
@@ -191,6 +231,9 @@ export default {
       startDate: '',
       endDate: '',
       tableNames: [],
+      instanceInfoData: [],
+      sgaData: [],
+      bufferData: [],
       cpuData: [],
       cpuSummary: [],
       headersCpuSummary: [
@@ -302,6 +345,47 @@ export default {
           this.error = 'No data found for the selected site and date range';
           return;
         }
+
+        const instanceInfo = response.data.instance_info[0];
+
+        this.instanceInfoData =
+          [
+            { label: 'DB Name', value: instanceInfo[2] },
+            { label: 'Global Name', value: instanceInfo[3] },
+            { label: 'DB Version', value: instanceInfo[4] },
+            { label: 'Host Name', value: instanceInfo[5] },
+            { label: 'Instance Name', value: instanceInfo[6] },
+            {
+              label: 'Instance Start Time',
+              value: new Date(instanceInfo[7]).toDateString(),
+            },
+            { label: 'Restricted Mode', value: instanceInfo[8] },
+            {
+              label: 'Archive Log Mode',
+              value: instanceInfo[9],
+            },
+            { label: 'Read Only Mode', value: instanceInfo[10] },
+          ] || [];
+
+        const sga = response.data.sga_info[0];
+
+        this.sgaData =
+          [
+            { label: 'Database Buffers', value: sga[2] },
+            { label: 'Fixed Size', value: sga[3] },
+            { label: 'Redo Buffers', value: sga[4] },
+            { label: 'Variable Size', value: sga[5] },
+          ] || [];
+
+        const buffer = response.data.buffer_cache[0];
+
+        this.bufferData =
+          [
+            {
+              label: 'Buffer Cache Hit Ratio',
+              value: buffer[2],
+            },
+          ] || [];
 
         // Process CPU data
         this.cpuData =
@@ -562,6 +646,9 @@ export default {
       }
     },
     resetData() {
+      this.instanceInfoData = [];
+      this.sgaData = [];
+      this.bufferData = [];
       this.cpuData = [];
       this.cpuSummary = [];
       this.memoryData = [];
@@ -596,5 +683,26 @@ export default {
 
 .low-usage {
   background-color: #c3f7c8 !important; /* Light Green */
+}
+.custom-table {
+  border: 1px solid #ccc;
+  width: 100%;
+}
+
+td {
+  padding: 8px;
+  border: 1px solid #ccc;
+}
+
+.label {
+  background-color: #d4d4a7;
+  font-weight: bold;
+  text-align: left;
+  width: 200px;
+}
+
+.value {
+  background-color: #f7f7e7;
+  text-align: left;
 }
 </style>
