@@ -35,7 +35,7 @@
       </v-row>
   
       <!-- Antivirus Table -->
-      <v-card elevation="2">
+      <v-card elevation="2" class="pa-5">
         <v-card-title>Threat</v-card-title>
         <v-data-table
           :headers="threatHeader"
@@ -43,6 +43,7 @@
           :items-per-page="10"
           class="elevation-1"
           density="compact"
+          hide-default-footer
         >
         </v-data-table>
       </v-card>
@@ -62,14 +63,17 @@
       const endDate = ref(new Date().toISOString().split('T')[0]);
       const threatDataTable = ref([]);
       const threatHeader = ref([
-        { title: 'Report Type', key: 'L_DATE' },
-        { title: 'Severity', key: 'REMIP' },
-        { title: 'Counts', key: 'FAIL_COUNTS' },
+        { title: 'Report Type', key: 'AUDITREPORTTYPE' },
+        { title: 'Audit Score', key: 'AUDITSCORE' },
+        { title: 'Critical', key: 'CRITICALCOUNT' },
+        { title: 'High', key: 'HIGHCOUNT' },
+        { title: 'Medium', key: 'MEDIUMCOUNT' },
+        { title: 'Low', key: 'LOWCOUNT' },
       ]);
   
       const fetchData = async () => {
         try {
-          let response = await api.get(`/firewall/denied-access`, {
+          let response = await api.get(`/firewall/threat`, {
             params: {
               start_date: startDate.value,
               end_date: endDate.value,
@@ -81,8 +85,6 @@
           console.error(`Error fetching denied access data:`, error);
         }
       };
-  
-      onMounted(fetchData);
   
       return {
         search_input,

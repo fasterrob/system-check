@@ -52,7 +52,7 @@
 
 <script>
 import api from '@/plugins/axios';
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 export default {
   setup() {
@@ -84,8 +84,6 @@ export default {
         console.error(`Error fetching denied access data:`, error);
       }
     };
-
-    onMounted(fetchData);
 
     return {
       search_input,
