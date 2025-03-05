@@ -56,7 +56,7 @@
 
 <script>
 import api from '@/plugins/axios';
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 export default {
   setup() {
@@ -93,8 +93,6 @@ export default {
         console.error(`Error fetching antivirus log data:`, error);
       }
     };
-
-    onMounted(fetchData);
 
     const getChipColor = (level) => {
       switch (level) {
