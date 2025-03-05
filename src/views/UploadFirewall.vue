@@ -39,10 +39,10 @@
 
       <!-- Directory Selector (Simulated v-file-input) -->
       <v-text-field
-      v-model="inputFullname"
-      label="Input Editor Name"
-      prepend-icon="mdi-rename"
-    />
+        v-model="inputFullname"
+        label="Input Editor Name"
+        prepend-icon="mdi-rename"
+      />
 
       <!-- Generate Button -->
       <div class="d-flex justify-center mt-3">
@@ -168,12 +168,16 @@ const generateReport = async () => {
 
   isProcessing.value = true;
   try {
-        const response = await api.get('/firewall-report/report-gen', {
-          input_month: selectedMonth.value,
-          input_year: selectedYear.value,
-          input_editor: inputFullname.value,
-        });
-    
+    const response = await api.get('/firewall-report/report-gen', {
+      params: {
+        input_month: selectedMonth.value,
+        input_year: selectedYear.value,
+        input_editor: inputFullname.value,
+      },
+      responseType: 'blob',
+    });
+
+    console.log(response.data);
     alert('Report generation started successfully!');
   } catch (error) {
     console.error('Error generating report:', error);
@@ -182,5 +186,4 @@ const generateReport = async () => {
     isProcessing.value = false;
   }
 };
-
 </script>
