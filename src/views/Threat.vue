@@ -62,9 +62,9 @@
       const endDate = ref(new Date().toISOString().split('T')[0]);
       const threatDataTable = ref([]);
       const threatHeader = ref([
-        { title: 'Severity', key: 'L_DATE' },
-        { title: 'Attack ID', key: 'REMIP' },
-        { title: 'Incidents', key: 'FAIL_COUNTS' },
+        { title: 'Report Type', key: 'L_DATE' },
+        { title: 'Severity', key: 'REMIP' },
+        { title: 'Counts', key: 'FAIL_COUNTS' },
       ]);
   
       const fetchData = async () => {
