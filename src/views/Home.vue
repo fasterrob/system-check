@@ -68,7 +68,7 @@
     </v-card>
 
     <v-card v-show="instanceInfoData.length > 0" class="mt-5">
-      <v-row class="mt-3">
+      <v-row class="mt-2">
         <v-col cols="6">
           <v-card-title>Database and Instance Information</v-card-title>
           <v-table dense class="custom-table">
@@ -81,28 +81,43 @@
           </v-table>
         </v-col>
         <v-col cols="6">
-          <v-row>
-            <v-card-title>SGA Information</v-card-title>
-            <v-table dense class="custom-table">
-              <tbody>
-                <tr v-for="(item, index) in sgaData" :key="index">
-                  <td class="label">{{ item.label }}</td>
-                  <td class="value">{{ item.value }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-row>
-          <v-row>
-            <v-card-title>Buffer Cache Hit Ratio</v-card-title>
-            <v-table dense class="custom-table">
-              <tbody>
-                <tr v-for="(item, index) in bufferData" :key="index">
-                  <td class="label">{{ item.label }}</td>
-                  <td class="value">{{ item.value }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-row>
+          <v-card-title>SGA Information</v-card-title>
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in sgaData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          <v-card-title
+            >Processes
+            <v-tooltip v-model="show" location="bottom">
+              <template v-slot:activator="{ props }">
+                <v-btn size="x-small" variant="plain" icon v-bind="props">
+                  <v-icon color="grey-lighten-1"> mdi-tooltip </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ processes_tooltip }}</span>
+            </v-tooltip></v-card-title
+          >
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in processData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          <v-card-title>Buffer Cache Hit Ratio</v-card-title>
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in bufferData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
         </v-col>
       </v-row>
     </v-card>
@@ -225,6 +240,9 @@ export default {
   components: { ConfirmDialog },
   data() {
     return {
+      show: false,
+      processes_tooltip:
+        'ถ้าค่าของ Current No. of Processes ที่ได้มีค่ามากกว่า 90% ของ Max No. of Processes ควรจะพิจารณาปรับเพิ่ม Max No. of Processes ที่กำหนดไว้ มิเช่นนั้นจะทำให้เกิดปัญหา Session ไม่สามารถ Connect Database ได้',
       error: '',
       loading: false,
       selectedTable: '',
@@ -233,6 +251,7 @@ export default {
       tableNames: [],
       instanceInfoData: [],
       sgaData: [],
+      processData: [],
       bufferData: [],
       cpuData: [],
       cpuSummary: [],
@@ -375,6 +394,14 @@ export default {
             { label: 'Fixed Size', value: sga[3] },
             { label: 'Redo Buffers', value: sga[4] },
             { label: 'Variable Size', value: sga[5] },
+          ] || [];
+
+        const process = response.data.process_info[0];
+
+        this.processData =
+          [
+            { label: 'Current No. of Processes', value: process[2] },
+            { label: 'Max No. of Processes', value: process[3] },
           ] || [];
 
         const buffer = response.data.buffer_cache[0];
@@ -689,14 +716,10 @@ export default {
   width: 100%;
 }
 
-td {
-  padding: 8px;
-  border: 1px solid #ccc;
-}
-
 .label {
-  background-color: #d4d4a7;
+  background-color: #2196f3;
   font-weight: bold;
+  color: white;
   text-align: left;
   width: 200px;
 }
