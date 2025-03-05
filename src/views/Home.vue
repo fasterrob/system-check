@@ -92,7 +92,7 @@
           </v-table>
           <v-card-title
             >Processes
-            <v-tooltip v-model="show" location="bottom">
+            <v-tooltip v-model="show" location="top">
               <template v-slot:activator="{ props }">
                 <v-btn size="x-small" variant="plain" icon v-bind="props">
                   <v-icon color="grey-lighten-1"> mdi-tooltip </v-icon>
@@ -109,7 +109,17 @@
               </tr>
             </tbody>
           </v-table>
-          <v-card-title>Buffer Cache Hit Ratio</v-card-title>
+          <v-card-title
+            >Buffer Cache Hit Ratio
+            <v-tooltip v-model="showBuffer" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn size="x-small" variant="plain" icon v-bind="props">
+                  <v-icon color="grey-lighten-1"> mdi-tooltip </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ buffer_tooltip }}</span>
+            </v-tooltip></v-card-title
+          >
           <v-table dense class="custom-table">
             <tbody>
               <tr v-for="(item, index) in bufferData" :key="index">
@@ -241,8 +251,11 @@ export default {
   data() {
     return {
       show: false,
+      showBuffer: false,
       processes_tooltip:
         'ถ้าค่าของ Current No. of Processes ที่ได้มีค่ามากกว่า 90% ของ Max No. of Processes ควรจะพิจารณาปรับเพิ่ม Max No. of Processes ที่กำหนดไว้ มิเช่นนั้นจะทำให้เกิดปัญหา Session ไม่สามารถ Connect Database ได้',
+      buffer_tooltip:
+        'ค่า Buffer Cache Hit Ratio จะเกี่ยวพันกับ RDBMS Size, SGA Size และประเภทของ Application ที่ใช้งานอยู่ ในกรณีที่เป็น OLTP ค่าของ Buffer Cache Hit Ratio ที่ได้ไม่ควรต่ำกว่า 95% ',
       error: '',
       loading: false,
       selectedTable: '',
@@ -663,9 +676,16 @@ export default {
             start_date: this.startDate,
             end_date: this.endDate,
           },
-          // responseType: 'blob',
+          responseType: 'blob',
         });
-        console.log(response);
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'report.docx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Error generating report:', error);
       } finally {
