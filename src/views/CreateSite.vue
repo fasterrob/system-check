@@ -1,23 +1,5 @@
 <template>
   <v-container>
-    <v-card>
-      <v-card-title>Create New Site</v-card-title>
-      <v-card-text>
-        <v-form @submit.prevent="addSite">
-          <v-text-field
-            v-model="siteName"
-            label="Site Name"
-            required
-          ></v-text-field>
-          <v-btn type="submit" color="primary" :disabled="!siteName || loading">
-            Add Site
-          </v-btn>
-        </v-form>
-        <p v-if="message">{{ message }}</p>
-      </v-card-text>
-    </v-card>
-
-    <!-- Display Created Sites -->
     <v-card class="mt-5">
       <v-card-title>Existing Sites</v-card-title>
       <v-card-text>
@@ -26,134 +8,167 @@
           :items="siteList"
           :items-per-page="5"
           :items-per-page-options="[5, 10, 20]"
-          dense
+          density="compact"
         >
           <template v-slot:item.created_at="{ item }">
             {{ formatDate(item.created_at) }}
           </template>
           <template v-slot:item.actions="{ item }">
-            <v-btn size="small" color="red" @click="openDeleteDialog(item)"
-              >X</v-btn
-            >
+            <v-btn size="small" color="red" @click="openDeleteDialog(item)">
+              X
+            </v-btn>
           </template>
         </v-data-table>
       </v-card-text>
     </v-card>
 
-    <!-- Confirmation Dialog -->
+    <v-card class="mt-5">
+      <v-alert v-if="message" type="error" class="mt-3">
+        {{ message }}
+      </v-alert>
+      <v-row justify="space-between">
+        <v-col cols="auto">
+          <v-card-title>Create New Site</v-card-title>
+        </v-col>
+        <v-col cols="auto">
+          <v-btn
+            class="ma-3"
+            type="submit"
+            color="primary"
+            :disabled="!siteName || loading"
+          >
+            Create Site
+          </v-btn>
+        </v-col>
+      </v-row>
+      <v-card-text>
+        <v-form @submit.prevent="addSite">
+          <v-text-field
+            v-model="siteName"
+            label="Site Name"
+            required
+          ></v-text-field>
+          <v-radio-group v-model="filetype" inline>
+            <v-radio label="nmon" value="nmon"></v-radio>
+            <v-radio label="text" value="text"></v-radio>
+          </v-radio-group>
+          <v-card v-show="filetype === 'text'">
+            <v-card-title>RegEX CPU</v-card-title>
+            <v-textarea
+              v-model="regexCpu"
+              label="RegEX CPU"
+              :required="filetype === 'text'"
+            />
+            <v-card-title>RegEX MEMORY</v-card-title>
+            <v-textarea
+              v-model="regexMemory"
+              label="RegEX MEMORY"
+              required="filetype === 'text'"
+            />
+          </v-card>
+        </v-form>
+      </v-card-text>
+    </v-card>
+
     <v-dialog v-model="deleteDialog" max-width="400">
       <v-card>
-        <v-card-title class="headline"
-          >Are you sure you want to delete
-          {{ siteToDelete.name }}?</v-card-title
-        >
+        <v-card-title class="headline">
+          Are you sure you want to delete {{ siteToDelete?.name }}?
+        </v-card-title>
         <v-card-actions>
-          <v-btn color="blue" text @click="deleteDialog = false">Cancel</v-btn>
-          <v-btn color="red" text @click="deleteSite">Delete</v-btn>
+          <v-btn color="blue" @click="deleteDialog = false">Cancel</v-btn>
+          <v-btn color="red" @click="deleteSite">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue';
 import api from '@/plugins/axios';
 
-export default {
-  data() {
-    return {
-      loading: false,
-      message: '',
-      siteName: '',
-      siteList: [],
-      siteHeaders: [
-        { title: 'ID', key: 'id' },
-        { title: 'Site Name', key: 'name' },
-        { title: 'Created At', key: 'created_at', align: 'end' },
-        { title: 'Actions', key: 'actions', align: 'end' },
-      ],
-      deleteDialog: false,
-      siteToDelete: null, // Site to delete
-    };
-  },
-  mounted() {
-    this.fetchData();
-  },
-  methods: {
-    async fetchData() {
-      this.loading = true;
-      try {
-        const res = await api.get('/get/table-name');
+const loading = ref(false);
+const filetype = ref('');
+const message = ref('');
+const siteName = ref('');
+const siteList = ref([]);
+const deleteDialog = ref(false);
+const siteToDelete = ref(null);
 
-        // Convert array of arrays to array of objects
-        this.siteList = res.data.site_name.map((item) => ({
-          id: item[0], // ID
-          name: item[1], // Site Name
-          created_at: item[2], // Timestamp
-        }));
-      } catch (e) {
-        console.error('Fetch failed:', e);
-        this.message = 'Failed to fetch sites.';
-      } finally {
-        this.loading = false;
-      }
-    },
-    async addSite() {
-      if (!this.siteName.trim()) return;
+const siteHeaders = [
+  { title: 'ID', key: 'id' },
+  { title: 'Site Name', key: 'name' },
+  { title: 'Created At', key: 'created_at', align: 'end' },
+  { title: 'Actions', key: 'actions', align: 'end' },
+];
 
-      console.log(this.siteName);
-      this.loading = true;
-      try {
-        const data = { site: this.siteName };
-        const res = await api.post('/site', data);
-
-        console.log(res);
-
-        this.message = res.data.message || 'Site added successfully';
-
-        // Add the new site to the table (assuming API doesn't return the new entry)
-        this.siteList.push({
-          id: this.siteList.length + 1, // Temporary ID
-          name: this.siteName,
-          created_at: new Date().toISOString(), // Current timestamp
-        });
-
-        this.siteName = '';
-      } catch (e) {
-        console.error('Create site failed:', e);
-        this.message = 'Failed to create site.';
-      } finally {
-        this.loading = false;
-      }
-    },
-    async deleteSite() {
-      if (!this.siteToDelete) return;
-      this.loading = true;
-      try {
-        // Perform the deletion API call
-        const res = await api.delete(
-          `/site/delete-site/${this.siteToDelete.id}`,
-        );
-        this.siteList = this.siteList.filter(
-          (site) => site.id !== this.siteToDelete.id,
-        );
-        this.message = 'Site deleted successfully';
-      } catch (e) {
-        console.error('Delete site failed:', e);
-        this.message = 'Failed to delete site.';
-      } finally {
-        this.deleteDialog = false;
-        this.loading = false;
-      }
-    },
-    openDeleteDialog(site) {
-      this.siteToDelete = site;
-      this.deleteDialog = true;
-    },
-    formatDate(dateStr) {
-      const date = new Date(dateStr);
-      return date.toLocaleString(); // Format for readability
-    },
-  },
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    const res = await api.get('/get/table-name');
+    siteList.value = res.data.site_name.map((item) => ({
+      id: item[0],
+      name: item[1],
+      created_at: item[2],
+    }));
+  } catch (e) {
+    console.error('Fetch failed:', e);
+    message.value = 'Failed to fetch sites.';
+  } finally {
+    loading.value = false;
+  }
 };
+
+const addSite = async () => {
+  if (!siteName.value.trim()) return;
+
+  loading.value = true;
+  try {
+    const data = { site: siteName.value };
+    const res = await api.post('/site', data);
+    message.value = res.data.message || 'Site added successfully';
+    siteList.value.push({
+      id: siteList.value.length + 1,
+      name: siteName.value,
+      created_at: new Date().toISOString(),
+    });
+    siteName.value = '';
+  } catch (e) {
+    console.error('Create site failed:', e);
+    message.value = 'Failed to create site.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteSite = async () => {
+  if (!siteToDelete.value) return;
+  loading.value = true;
+  try {
+    await api.delete(`/site/delete-site/${siteToDelete.value.id}`);
+    siteList.value = siteList.value.filter(
+      (site) => site.id !== siteToDelete.value.id,
+    );
+    message.value = 'Site deleted successfully';
+  } catch (e) {
+    console.error('Delete site failed:', e);
+    message.value = 'Failed to delete site.';
+  } finally {
+    deleteDialog.value = false;
+    loading.value = false;
+  }
+};
+
+const openDeleteDialog = (site) => {
+  siteToDelete.value = site;
+  deleteDialog.value = true;
+};
+
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleString();
+};
+
+onMounted(fetchData);
 </script>

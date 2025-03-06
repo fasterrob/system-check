@@ -5,43 +5,46 @@
       <v-card-text>{{ message }}</v-card-text>
 
       <v-card-actions class="justify-center">
-        <v-btn color="primary" variant="tonal" text @click="handleYes"
-          >Yes</v-btn
-        >
+        <v-btn color="primary" variant="tonal" text @click="handleYes">
+          Yes
+        </v-btn>
         <v-btn color="red" variant="tonal" text @click="handleNo">No</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      show: false,
-      title: 'Confirm Action',
-      message: 'Are you sure you want to proceed?',
-      resolve: null,
-    };
-  },
-  methods: {
-    open({ title = 'Confirm Action', message = 'Are you sure?' }) {
-      this.title = title;
-      this.message = message;
-      this.show = true;
+<script setup>
+import { ref } from 'vue';
 
-      return new Promise((resolve) => {
-        this.resolve = resolve;
-      });
-    },
-    handleYes() {
-      this.show = false;
-      if (this.resolve) this.resolve(true);
-    },
-    handleNo() {
-      this.show = false;
-      if (this.resolve) this.resolve(false);
-    },
-  },
+const show = ref(false);
+const title = ref('Confirm Action');
+const message = ref('Are you sure you want to proceed?');
+let resolvePromise = null;
+
+const open = ({
+  title: newTitle = 'Confirm Action',
+  message: newMessage = 'Are you sure?',
+}) => {
+  title.value = newTitle;
+  message.value = newMessage;
+  show.value = true;
+
+  return new Promise((resolve) => {
+    resolvePromise = resolve;
+  });
 };
+
+const handleYes = () => {
+  show.value = false;
+  if (resolvePromise) resolvePromise(true);
+};
+
+const handleNo = () => {
+  show.value = false;
+  if (resolvePromise) resolvePromise(false);
+};
+
+// Expose the `open` method for external use
+defineExpose({ open });
 </script>
