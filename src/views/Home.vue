@@ -67,6 +67,71 @@
       </v-card-text>
     </v-card>
 
+    <v-card v-show="instanceInfoData.length > 0" class="mt-5">
+      <v-row class="mt-2">
+        <v-col cols="6">
+          <v-card-title>Database and Instance Information</v-card-title>
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in instanceInfoData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-col>
+        <v-col cols="6">
+          <v-card-title>SGA Information</v-card-title>
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in sgaData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          <v-card-title
+            >Processes
+            <v-tooltip v-model="show" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn size="x-small" variant="plain" icon v-bind="props">
+                  <v-icon color="grey-lighten-1"> mdi-tooltip </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ processes_tooltip }}</span>
+            </v-tooltip></v-card-title
+          >
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in processData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          <v-card-title
+            >Buffer Cache Hit Ratio
+            <v-tooltip v-model="showBuffer" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn size="x-small" variant="plain" icon v-bind="props">
+                  <v-icon color="grey-lighten-1"> mdi-tooltip </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ buffer_tooltip }}</span>
+            </v-tooltip></v-card-title
+          >
+          <v-table dense class="custom-table">
+            <tbody>
+              <tr v-for="(item, index) in bufferData" :key="index">
+                <td class="label">{{ item.label }}</td>
+                <td class="value">{{ item.value }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-col>
+      </v-row>
+    </v-card>
+
     <v-card v-show="cpuData.length > 0" class="mt-5">
       <v-card-title>CPU Usage</v-card-title>
       <v-card-text class="pb-0">
@@ -185,12 +250,22 @@ export default {
   components: { ConfirmDialog },
   data() {
     return {
+      show: false,
+      showBuffer: false,
+      processes_tooltip:
+        'ถ้าค่าของ Current No. of Processes ที่ได้มีค่ามากกว่า 90% ของ Max No. of Processes ควรจะพิจารณาปรับเพิ่ม Max No. of Processes ที่กำหนดไว้ มิเช่นนั้นจะทำให้เกิดปัญหา Session ไม่สามารถ Connect Database ได้',
+      buffer_tooltip:
+        'ค่า Buffer Cache Hit Ratio จะเกี่ยวพันกับ RDBMS Size, SGA Size และประเภทของ Application ที่ใช้งานอยู่ ในกรณีที่เป็น OLTP ค่าของ Buffer Cache Hit Ratio ที่ได้ไม่ควรต่ำกว่า 95% ',
       error: '',
       loading: false,
       selectedTable: '',
       startDate: '',
       endDate: '',
       tableNames: [],
+      instanceInfoData: [],
+      sgaData: [],
+      processData: [],
+      bufferData: [],
       cpuData: [],
       cpuSummary: [],
       headersCpuSummary: [
@@ -302,6 +377,55 @@ export default {
           this.error = 'No data found for the selected site and date range';
           return;
         }
+
+        const instanceInfo = response.data.instance_info[0];
+
+        this.instanceInfoData =
+          [
+            { label: 'DB Name', value: instanceInfo[2] },
+            { label: 'Global Name', value: instanceInfo[3] },
+            { label: 'DB Version', value: instanceInfo[4] },
+            { label: 'Host Name', value: instanceInfo[5] },
+            { label: 'Instance Name', value: instanceInfo[6] },
+            {
+              label: 'Instance Start Time',
+              value: new Date(instanceInfo[7]).toDateString(),
+            },
+            { label: 'Restricted Mode', value: instanceInfo[8] },
+            {
+              label: 'Archive Log Mode',
+              value: instanceInfo[9],
+            },
+            { label: 'Read Only Mode', value: instanceInfo[10] },
+          ] || [];
+
+        const sga = response.data.sga_info[0];
+
+        this.sgaData =
+          [
+            { label: 'Database Buffers', value: sga[2] },
+            { label: 'Fixed Size', value: sga[3] },
+            { label: 'Redo Buffers', value: sga[4] },
+            { label: 'Variable Size', value: sga[5] },
+          ] || [];
+
+        const process = response.data.process_info[0];
+
+        this.processData =
+          [
+            { label: 'Current No. of Processes', value: process[2] },
+            { label: 'Max No. of Processes', value: process[3] },
+          ] || [];
+
+        const buffer = response.data.buffer_cache[0];
+
+        this.bufferData =
+          [
+            {
+              label: 'Buffer Cache Hit Ratio',
+              value: buffer[2],
+            },
+          ] || [];
 
         // Process CPU data
         this.cpuData =
@@ -552,9 +676,16 @@ export default {
             start_date: this.startDate,
             end_date: this.endDate,
           },
-          // responseType: 'blob',
+          responseType: 'blob',
         });
-        console.log(response);
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'report.docx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Error generating report:', error);
       } finally {
@@ -562,6 +693,9 @@ export default {
       }
     },
     resetData() {
+      this.instanceInfoData = [];
+      this.sgaData = [];
+      this.bufferData = [];
       this.cpuData = [];
       this.cpuSummary = [];
       this.memoryData = [];
@@ -596,5 +730,22 @@ export default {
 
 .low-usage {
   background-color: #c3f7c8 !important; /* Light Green */
+}
+.custom-table {
+  border: 1px solid #ccc;
+  width: 100%;
+}
+
+.label {
+  background-color: #2196f3;
+  font-weight: bold;
+  color: white;
+  text-align: left;
+  width: 200px;
+}
+
+.value {
+  background-color: #f7f7e7;
+  text-align: left;
 }
 </style>
