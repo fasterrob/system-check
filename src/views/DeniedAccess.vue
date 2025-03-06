@@ -1,260 +1,107 @@
 <template>
   <v-container>
-    <!-- Date Range Picker -->
     <v-row justify="end" class="mb-3">
-      <v-col cols="3">
-        <v-menu v-model="startDatePicker" :close-on-content-click="false">
-          <template v-slot:activator="{ props }">
-            <v-text-field
-              v-model="formattedStartDate"
-              label="Start Date"
-              prepend-inner-icon="mdi-calendar"
-              readonly
-              v-bind="props"
-            ></v-text-field>
-          </template>
-          <v-date-picker
-            v-model="startDate"
-            @update:modelValue="updateFormattedDate"
-          ></v-date-picker>
-        </v-menu>
+      <!-- Search Bar -->
+      <v-col cols="4" md="3">
+        <v-text-field
+          v-model="search_input"
+          @keyup.enter="fetchData"
+          label="Search"
+          variant="outlined"
+          append-inner-icon="mdi-magnify"
+          clearable
+          dense
+        ></v-text-field>
       </v-col>
 
+      <!-- Date Range Picker -->
       <v-col cols="3">
-        <v-menu v-model="endDatePicker" :close-on-content-click="false">
-          <template v-slot:activator="{ props }">
-            <v-text-field
-              v-model="formattedEndDate"
-              label="End Date"
-              prepend-inner-icon="mdi-calendar"
-              readonly
-              v-bind="props"
-            ></v-text-field>
-          </template>
-          <v-date-picker
-            v-model="endDate"
-            @update:modelValue="updateFormattedDate"
-          ></v-date-picker>
-        </v-menu>
+        <v-text-field
+          v-model="startDate"
+          label="Start Date"
+          type="date"
+          outlined
+        ></v-text-field>
+      </v-col>
+      <v-col cols="3">
+        <v-text-field
+          v-model="endDate"
+          label="End Date"
+          type="date"
+          @keyup.enter="fetchData"
+          outlined
+        ></v-text-field>
       </v-col>
     </v-row>
 
-    <!-- Tabs -->
-    <v-card>
-      <v-tabs v-model="tab">
-        <v-tab value="total">Total Bandwidth</v-tab>
-        <v-tab value="sent">Sent Bandwidth</v-tab>
-        <v-tab value="receive">Received Bandwidth</v-tab>
-      </v-tabs>
-
-      <v-window v-model="tab">
-        <v-window-item value="total">
-          <v-card class="pa-4">
-            <v-card-title>Total Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="totalChart"></canvas></v-card-text>
-            <v-data-table
-              :headers="totalDataHeader"
-              :items="totalDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-
-        <v-window-item value="sent">
-          <v-card class="pa-4">
-            <v-card-title>Sent Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="sentChart"></canvas></v-card-text>
-            <v-data-table
-              :headers="sentDataHeader"
-              :items="sentDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-
-        <v-window-item value="receive">
-          <v-card class="pa-4">
-            <v-card-title>Received Bandwidth Usage</v-card-title>
-            <v-card-text><canvas ref="receiveChart"></canvas></v-card-text>
-            <v-data-table
-              :headers="receiveDataHeader"
-              :items="receiveDataTable"
-              :items-per-page="5"
-              class="elevation-1"
-            ></v-data-table>
-          </v-card>
-        </v-window-item>
-      </v-window>
+    <!-- Denied Access Table -->
+    <v-card elevation="2">
+      <v-card-title>Denied Access</v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <v-data-table
+          :headers="deniedHeader"
+          :items="deniedDataTable"
+          :items-per-page="10"
+          density="compact"
+        ></v-data-table>
+      </v-card-text>
     </v-card>
   </v-container>
 </template>
 
 <script>
 import api from '@/plugins/axios';
-import Chart from 'chart.js/auto';
-import downsamplePlugin from 'chartjs-plugin-downsample';
-
-// Ensure the plugin is correctly registered
-if (downsamplePlugin && downsamplePlugin.id) {
-  Chart.register(downsamplePlugin);
-} else {
-  console.warn('Downsample plugin not properly imported');
-}
+import { ref, onMounted } from 'vue';
 
 export default {
-  data() {
-    return {
-      tab: 'total',
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-      endDate: new Date(),
-      formattedStartDate: '01-DEC-24',
-      formattedEndDate: '31-DEC-24',
-      startDatePicker: false,
-      endDatePicker: false,
-      totalData: [],
-      totalDataTable: [],
-      totalDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
-      ],
-      sentData: [],
-      sentDataTable: [],
-      sentDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Sent Bandwidth (MB)', key: 'SENT_BANDWIDTH' },
-      ],
-      receiveData: [],
-      receiveDataTable: [],
-      receiveDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Received Bandwidth (MB)', key: 'RECEIVE_BANDWIDTH' },
-      ],
-      totalChartInstance: null,
-      sentChartInstance: null,
-      receiveChartInstance: null,
-    };
-  },
-  watch: {
-    tab(newTab) {
-      this.fetchData(newTab);
-    },
-  },
-  methods: {
-    updateFormattedDate() {
-      this.formattedStartDate = this.formatDate(this.startDate);
-      this.formattedEndDate = this.formatDate(this.endDate);
-      this.fetchData(this.tab);
-    },
-    formatDate(date) {
-      if (!(date instanceof Date)) return '';
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = date
-        .toLocaleString('en-US', { month: 'short' })
-        .toUpperCase();
-      const year = date.getFullYear().toString().slice(-2);
-      return `${day}-${month}-${year}`;
-    },
-    async fetchData(type) {
-      console.log(
-        `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
-      );
+  setup() {
+    const search_input = ref('');
+    const startDate = ref(
+      new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]
+    );
+    const endDate = ref(new Date().toISOString().split('T')[0]);
+    const deniedDataTable = ref([]);
+    const deniedHeader = ref([
+      { title: 'Date', key: 'L_DATE' },
+      { title: 'Remote IP', key: 'REMIP' },
+      { title: 'Description', key: 'LOGDESC' },
+      { title: 'Reason', key: 'REASON' },
+      { title: 'Fail Count', key: 'FAIL_COUNTS' },
+    ]);
+
+    const fetchData = async () => {
       try {
-        let response = await api.get(`/firewall/${type}-bandwidth`, {
+        let response = await api.get(`/firewall/denied-access`, {
           params: {
-            start_date: this.formattedStartDate,
-            end_date: this.formattedEndDate,
+            start_date: startDate.value,
+            end_date: endDate.value,
+            search_input: search_input.value,
           },
         });
-
-        let rawData = response.data.site_name;
-
-        let groupedData = this.aggregateData(
-          rawData,
-          'L_DATE',
-          type === 'total'
-            ? 'TOTAL_BANDWIDTH'
-            : type === 'sent'
-              ? 'SENT_BANDWIDTH'
-              : 'RECEIVE_BANDWIDTH',
-        );
-
-        if (type === 'total') {
-          this.totalDataTable = rawData;
-          this.totalData = groupedData;
-          this.renderChart(
-            'totalChart',
-            'Total Bandwidth (MB)',
-            this.totalData,
-            'TOTAL_BANDWIDTH',
-          );
-        } else if (type === 'sent') {
-          this.sentDataTable = rawData;
-          this.sentData = groupedData;
-          this.renderChart(
-            'sentChart',
-            'Sent Bandwidth (MB)',
-            this.sentData,
-            'SENT_BANDWIDTH',
-          );
-        } else if (type === 'receive') {
-          this.receiveDataTable = rawData;
-          this.receiveData = groupedData;
-          this.renderChart(
-            'receiveChart',
-            'Received Bandwidth (MB)',
-            this.receiveData,
-            'RECEIVE_BANDWIDTH',
-          );
-        }
+        deniedDataTable.value = response.data.site_name;
       } catch (error) {
-        console.error(`Error fetching ${type} data:`, error);
+        console.error(`Error fetching denied access data:`, error);
       }
-    },
-    aggregateData(data, dateKey, valueKey) {
-      let aggregated = {};
-      data.forEach((row) => {
-        let timestamp = row[dateKey].slice(0, 13);
-        if (!aggregated[timestamp]) {
-          aggregated[timestamp] = { L_DATE: timestamp, [valueKey]: 0 };
-        }
-        aggregated[timestamp][valueKey] += parseFloat(row[valueKey]);
-      });
-      return Object.values(aggregated);
-    },
-    renderChart(chartRef, label, data, dataKey) {
-      if (this[chartRef]) this[chartRef].destroy();
+    };
 
-      let ctx = this.$refs[chartRef].getContext('2d');
-      this[chartRef] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map((d) => d.L_DATE),
-          datasets: [
-            {
-              label,
-              data: data.map((d) => d[dataKey]),
-              borderColor: 'blue',
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            downsample: { enabled: true, threshold: 5000, auto: true },
-          },
-        },
-      });
-    },
-  },
-  mounted() {
-    this.fetchData(this.tab);
+    onMounted(fetchData);
+
+    return {
+      search_input,
+      startDate,
+      endDate,
+      deniedDataTable,
+      deniedHeader,
+      fetchData,
+    };
   },
 };
 </script>
+
+<style scoped>
+.v-container {
+  max-width: 1200px;
+  margin: auto;
+}
+</style>

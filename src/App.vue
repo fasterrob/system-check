@@ -80,7 +80,7 @@
           prepend-icon="mdi-upload"
           @click="title = 'Firewall'"
         >
-          Upload Firewall logs
+          Firewall Log
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
