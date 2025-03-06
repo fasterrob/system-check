@@ -176,14 +176,29 @@ const generateReport = async () => {
       },
       responseType: 'blob',
     });
+    // Create a URL for the Blob response
+    const blob = new Blob([response.data], {
+          type: response.headers['content-type'],
+        });
+        const url = window.URL.createObjectURL(blob);
 
-    console.log(response.data);
-    alert('Report generation started successfully!');
-  } catch (error) {
-    console.error('Error generating report:', error);
-    alert('Failed to generate report.');
-  } finally {
-    isProcessing.value = false;
-  }
-};
+        // Create a temporary download link and click it
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute(
+          'download',
+          `HealthCheckReport_${this.selectedTable}_${this.startDate}_${this.endDate}.xlsx`,
+        );
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error generating report:', error);
+      } finally {
+        isProcessing.value = false;
+      }
+    };
 </script>
