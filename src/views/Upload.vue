@@ -19,7 +19,18 @@
           outlined
         ></v-text-field>
 
-        <p>Selected Date: {{ formattedDate }}</p>
+        <!-- เลือกคอลัมน์ที่ต้องการอัปโหลด -->
+        <p class="text-caption text-disabled">
+          *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
+        </p>
+        <v-autocomplete
+          v-model="selectedColumns"
+          :items="availableColumns"
+          label="Select existing CPU-related columns"
+          multiple
+          outlined
+          dense
+        ></v-autocomplete>
 
         <v-file-input
           v-model="file"
@@ -66,6 +77,18 @@ export default {
       message: '',
       uploadSuccess: false,
       selectDate: '',
+      availableColumns: [
+        '%user',
+        '%nice',
+        '%system',
+        '%iowait',
+        '%irq',
+        '%soft',
+        '%steal',
+        '%guest',
+        '%idle',
+      ],
+      selectedColumns: [],
     };
   },
   computed: {
