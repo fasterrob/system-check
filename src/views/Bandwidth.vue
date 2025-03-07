@@ -55,7 +55,7 @@
             <v-data-table
               :headers="totalDataHeader"
               :items="totalDataTable"
-              :items-per-page="5"
+              :items-per-page="10"
               class="elevation-1"
             ></v-data-table>
           </v-card>
@@ -68,7 +68,7 @@
             <v-data-table
               :headers="sentDataHeader"
               :items="sentDataTable"
-              :items-per-page="5"
+              :items-per-page="10"
               class="elevation-1"
             ></v-data-table>
           </v-card>
@@ -81,7 +81,7 @@
             <v-data-table
               :headers="receiveDataHeader"
               :items="receiveDataTable"
-              :items-per-page="5"
+              :items-per-page="10"
               class="elevation-1"
             ></v-data-table>
           </v-card>
@@ -150,6 +150,7 @@ export default {
       this.formattedEndDate = this.formatDate(this.endDate);
       this.fetchData(this.tab);
     },
+    
     formatDate(date) {
       if (!(date instanceof Date)) return '';
       const day = String(date.getDate()).padStart(2, '0');
@@ -159,6 +160,7 @@ export default {
       const year = date.getFullYear().toString().slice(-2);
       return `${day}-${month}-${year}`;
     },
+
     async fetchData(type) {
       console.log(
         `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
@@ -215,6 +217,7 @@ export default {
         console.error(`Error fetching ${type} data:`, error);
       }
     },
+
     aggregateData(data, dateKey, valueKey) {
       let aggregated = {};
       data.forEach((row) => {
@@ -226,28 +229,53 @@ export default {
       });
       return Object.values(aggregated);
     },
-    renderChart(chartRef, label, data, dataKey) {
-      if (this[chartRef]) this[chartRef].destroy();
 
-      let ctx = this.$refs[chartRef].getContext('2d');
-      this[chartRef] = new Chart(ctx, {
+    renderChart(chartRef, label, data, dataKey, height = 300) {
+      if (this.chartInstance) {
+        this.chartInstance.destroy(); // Destroy existing chart before re-rendering
+      }
+
+      let canvas = this.$refs[chartRef];
+      let ctx = canvas.getContext('2d');
+
+      // Set dynamic height
+      canvas.height = height;
+
+      // Compute dynamic min and max values for Y-axis
+      const values = data.map((d) => d[dataKey]);
+      const maxY = Math.max(...values);
+      const buffer = maxY * 0.3; // Add 30% extra space above the highest value
+      const roundedMax = Math.ceil((maxY + buffer) / 1000000) * 1000000; // Round to nearest million
+
+      this.chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: data.map((d) => d.L_DATE),
           datasets: [
             {
               label,
-              data: data.map((d) => d[dataKey]),
-              borderColor: 'blue',
+              data: values,
+              borderColor: 'navy',
               borderWidth: 1,
             },
           ],
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: false, // Allows custom height
           plugins: {
             downsample: { enabled: true, threshold: 5000, auto: false },
+          },
+          scales: {
+            y: {
+              min: 0,
+              max: roundedMax, // Increase max limit dynamically
+              ticks: {
+                callback: function (value) {
+                  return value.toLocaleString('en-US', { maximumFractionDigits: 0 }); // Format with commas
+                },
+              },
+            },
           },
         },
       });

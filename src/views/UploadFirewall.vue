@@ -176,12 +176,23 @@ const generateReport = async () => {
       },
       responseType: 'blob',
     });
+    // Create a URL for the Blob response
+    const blob = new Blob([response.data], {
+      type: response.headers['content-type'],
+    });
+    const url = window.URL.createObjectURL(blob);
 
-    console.log(response.data);
-    alert('Report generation started successfully!');
+    // Create a temporary download link and click it
+    const link = document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error generating report:', error);
-    alert('Failed to generate report.');
   } finally {
     isProcessing.value = false;
   }

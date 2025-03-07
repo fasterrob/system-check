@@ -61,7 +61,7 @@
         <v-list-item
           link
           to="/antivirus"
-          prepend-icon="mdi-virus"
+          prepend-icon="mdi-shield-bug"
           @click="title = 'Firewall'"
         >
           Antivirus
@@ -80,7 +80,7 @@
           prepend-icon="mdi-upload"
           @click="title = 'Firewall'"
         >
-          Firewall Log
+          Firewall Upload Logs
         </v-list-item>
       </v-list>
     </v-navigation-drawer>

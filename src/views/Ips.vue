@@ -34,7 +34,7 @@
       </v-col>
     </v-row>
 
-    <!-- Antivirus Table -->
+    <!-- IPS Table -->
     <v-card elevation="2">
       <v-card-title>IPS Log</v-card-title>
       <v-data-table
@@ -44,6 +44,11 @@
         class="elevation-1"
         density="compact"
       >
+        <template v-slot:item.Severity="{ item }">
+          <v-chip :color="getChipColor(item.Severity)" dark>
+            {{ item.Severity }}
+          </v-chip>
+        </template>
       </v-data-table>
     </v-card>
   </v-container>
@@ -51,16 +56,19 @@
 
 <script>
 import api from '@/plugins/axios';
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 export default {
   setup() {
     const search_input = ref('');
     const startDate = ref(
-      new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]
+      new Date(new Date().setMonth(new Date().getMonth() - 1))
+        .toISOString()
+        .split('T')[0],
     );
     const endDate = ref(new Date().toISOString().split('T')[0]);
     const ipsDataTable = ref([]);
+
     const ipsHeader = ref([
       { title: 'Date', key: 'Date' },
       { title: 'User', key: 'User' },
@@ -86,7 +94,20 @@ export default {
       }
     };
 
-    onMounted(fetchData);
+    const getChipColor = (level) => {
+      switch (level) {
+        case 'Critical':
+          return 'red';
+        case 'High':
+          return 'orange';
+        case 'Medium':
+          return '#ebcc02';
+        case 'Low':
+          return 'green';
+        default:
+          return 'grey';
+      }
+    };
 
     return {
       search_input,
@@ -95,6 +116,7 @@ export default {
       ipsDataTable,
       ipsHeader,
       fetchData,
+      getChipColor,
     };
   },
 };
