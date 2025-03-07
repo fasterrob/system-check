@@ -112,53 +112,15 @@
 import { ref } from 'vue';
 import api from '@/plugins/axios';
 
-const selectedFileType = ref('csv');
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(null);
 const inputFullname = ref('');
-const selectedFiles = ref([]);
-const isUploading = ref(false);
 const isProcessing = ref(false);
-const topic = ref(null);
-const itemsTopic = ref(['Antivirus Log', 'IPS Log', 'Firewall Log']);
 
-const uploadFiles = async () => {
-  if (!topic.value) {
-    alert('Please select a table.');
-    return;
-  }
-  if (!selectedYear.value) {
-    alert('Please select a year.');
-    return;
-  }
-
-  const url = selectedFileType.value === 'log' ? 'upload-log' : 'upload-csv';
-  isUploading.value = true;
-
-  const formData = new FormData();
-  if (selectedFileType.value === 'csv') {
-    formData.append('file', selectedFiles.value);
-  } else {
-    selectedFiles.value.forEach((file) => {
-      formData.append('files', file);
-    });
-  }
-  formData.append('year', selectedYear.value);
-  formData.append('topic', topic.value);
-
-  try {
-    const response = await api.post(`/firewall/${url}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    alert('Upload successful!');
-    console.log(response.data);
-  } catch (error) {
-    alert('Upload failed!');
-    console.error(error);
-  } finally {
-    isUploading.value = false;
-  }
-};
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const generateReport = async () => {
   if (!selectedMonth.value || !selectedYear.value || !inputFullname.value) {
@@ -176,22 +138,27 @@ const generateReport = async () => {
       },
       responseType: 'blob',
     });
-    // Create a URL for the Blob response
-    const blob = new Blob([response.data], {
-      type: response.headers['content-type'],
-    });
+
+    const contentDisposition = response.headers['content-disposition'];
+    const monthName = monthNames[selectedMonth.value - 1];
+    const fileName = contentDisposition
+      ? contentDisposition.split('filename=')[1].replace(/['\"]/g, '')
+      : `Firewall_Report_${monthName}_${selectedYear.value}.docx`;
+
+    const blob = new Blob([response.data], { type: response.headers['content-type'] });
     const url = window.URL.createObjectURL(blob);
 
-    // Create a temporary download link and click it
     const link = document.createElement('a');
     link.href = url;
+    link.download = fileName;
+
     document.body.appendChild(link);
     link.click();
 
-    // Cleanup
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {
+    alert('Error generating report.');
     console.error('Error generating report:', error);
   } finally {
     isProcessing.value = false;
