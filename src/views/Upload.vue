@@ -19,29 +19,37 @@
           outlined
         ></v-text-field>
 
-        <!-- เลือกคอลัมน์ที่ต้องการอัปโหลด -->
-        <p class="text-caption text-disabled">
-          *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
-        </p>
-        <v-autocomplete
-          v-model="selectedColumns"
-          :items="availableColumns"
-          label="Select existing CPU-related columns"
-          multiple
-          outlined
-          dense
-        ></v-autocomplete>
+        <v-radio-group v-model="filetype" inline>
+          <v-radio label="nmon" value="nmon"></v-radio>
+          <v-radio label="text" value="text"></v-radio>
+        </v-radio-group>
 
+        <div v-show="filetype === 'text'">
+          <!-- เลือกคอลัมน์ที่ต้องการอัปโหลด -->
+          <p class="text-caption text-disabled">
+            *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
+          </p>
+          <v-autocomplete
+            v-model="selectedColumns"
+            :items="availableColumns"
+            label="Select existing CPU-related columns"
+            multiple
+            outlined
+            dense
+          ></v-autocomplete>
+        </div>
         <v-file-input
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"
           accept="*"
+          :mutiple="filetype === 'nmon'"
         ></v-file-input>
 
+        {{ filetype === 'nmon' }}
         <v-btn
           :disabled="!file || !selectedTable"
           color="primary"
-          @click="uploadFile"
+          @click="filetype === 'text' ? uploadFile : uploadFiles"
         >
           Upload
         </v-btn>
@@ -71,6 +79,7 @@ export default {
   data() {
     return {
       tableNames: [],
+      filetype: 'text',
       file: null,
       loading: false,
       selectedTable: null, // Store selected table as object { id, name }
@@ -149,6 +158,10 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async uploadFiles() {
+      if (!this.file || !this.selectedTable) return;
+      this.loading = true;
     },
   },
 };
