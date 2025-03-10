@@ -57,8 +57,15 @@
               :items="totalDataTable"
               :items-per-page="10"
               class="elevation-1"
-              style="width: 100%;"
-            ></v-data-table>
+              style="width: 100%"
+            >
+              <template v-slot:item.TOTAL_BANDWIDTH="{ item }">
+                {{ formatNumber(item.TOTAL_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.TOTAL_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.TOTAL_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
 
@@ -71,7 +78,14 @@
               :items="sentDataTable"
               :items-per-page="10"
               class="elevation-1"
-            ></v-data-table>
+            >
+              <template v-slot:item.SENT_BANDWIDTH="{ item }">
+                {{ formatNumber(item.SENT_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.SENT_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.SENT_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
 
@@ -84,7 +98,14 @@
               :items="receiveDataTable"
               :items-per-page="10"
               class="elevation-1"
-            ></v-data-table>
+            >
+              <template v-slot:item.RECEIVE_BANDWIDTH="{ item }">
+                {{ formatNumber(item.RECEIVE_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.RECEIVE_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.RECEIVE_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
       </v-window>
@@ -118,22 +139,52 @@ export default {
       totalDataTable: [],
       totalDataHeader: [
         { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
-        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH', align: 'center', width: '37.5%' },
-        { title: 'Total Bandwidth (GB)', key: 'TOTAL_BANDWIDTH_GB', align: 'center', width: '37.5%' },
+        {
+          title: 'Total Bandwidth (MB)',
+          key: 'TOTAL_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Total Bandwidth (GB)',
+          key: 'TOTAL_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       sentData: [],
       sentDataTable: [],
       sentDataHeader: [
         { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
-        { title: 'Sent Bandwidth (MB)', key: 'SENT_BANDWIDTH', align: 'center', width: '37.5%' },
-        { title: 'Sent Bandwidth (GB)', key: 'SENT_BANDWIDTH_GB', align: 'center', width: '37.5%' },
+        {
+          title: 'Sent Bandwidth (MB)',
+          key: 'SENT_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Sent Bandwidth (GB)',
+          key: 'SENT_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       receiveData: [],
       receiveDataTable: [],
       receiveDataHeader: [
         { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
-        { title: 'Receive Bandwidth (MB)', key: 'RECEIVE_BANDWIDTH', align: 'center', width: '37.5%' },
-        { title: 'Receive Bandwidth (GB)', key: 'RECEIVE_BANDWIDTH_GB', align: 'center', width: '37.5%' },
+        {
+          title: 'Receive Bandwidth (MB)',
+          key: 'RECEIVE_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Receive Bandwidth (GB)',
+          key: 'RECEIVE_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       totalChartInstance: null,
       sentChartInstance: null,
@@ -244,7 +295,7 @@ export default {
       return Object.values(aggregated);
     },
 
-    renderChart(chartRef, label, data, dataKey, height = 300) {
+    renderChart(chartRef, label, data, dataKey, height = 200) {
       if (this.chartInstance) {
         this.chartInstance.destroy(); // Destroy existing chart before re-rendering
       }
@@ -294,6 +345,13 @@ export default {
             },
           },
         },
+      });
+    },
+
+    formatNumber(value) {
+      if (!value) return '0'; // Handle empty values
+      return Number(value).toLocaleString('en-US', {
+        maximumFractionDigits: 2,
       });
     },
   },

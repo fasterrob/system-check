@@ -92,13 +92,15 @@
          :multiple="selectedFileType === 'log'"
        ></v-file-input>
  
-       <v-btn
-         color="primary"
-         class="mt-3"
-         :loading="isUploading"
-         @click="uploadFile"
-         >Upload</v-btn
-       >
+
+       <div class="d-flex justify-center mt-3">
+         <v-btn
+           color="primary"
+           class="mt-3"
+           :loading="isUploading"
+           @click="uploadFile"
+           >Upload</v-btn>
+       </div>
      </v-card>
     </div>
   </v-container>
