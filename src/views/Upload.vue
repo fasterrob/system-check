@@ -24,7 +24,17 @@
           <v-radio label="text" value="text"></v-radio>
         </v-radio-group>
 
-        <div v-show="filetype === 'text'">
+        <v-select
+          v-if="filetype === 'text'"
+          v-model="selectfileDetails"
+          :items="fileDetails"
+          item-title="name"
+          item-value="id"
+          label="Select Table"
+          outlined
+        ></v-select>
+
+        <div v-show="selectfileDetails !== 'other'">
           <!-- เลือกคอลัมน์ที่ต้องการอัปโหลด -->
           <p class="text-caption text-disabled">
             *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
@@ -39,17 +49,35 @@
           ></v-autocomplete>
         </div>
         <v-file-input
+          v-if="filetype === 'text'"
           v-model="file"
           label="Select System Log File (CSV, Excel, Txt, HTML)"
           accept="*"
-          :mutiple="filetype === 'nmon'"
         ></v-file-input>
 
-        {{ filetype === 'nmon' }}
+        <v-file-input
+          v-if="filetype === 'nmon'"
+          v-model="file"
+          label="Select NMON File"
+          accept=".nmon"
+          multiple
+        >
+        </v-file-input>
+
         <v-btn
+          v-if="filetype === 'text'"
           :disabled="!file || !selectedTable"
           color="primary"
-          @click="filetype === 'text' ? uploadFile : uploadFiles"
+          @click="uploadFile"
+        >
+          Upload
+        </v-btn>
+
+        <v-btn
+          v-if="filetype === 'nmon'"
+          :disabled="!file || !selectedTable"
+          color="warning"
+          @click="uploadFiles"
         >
           Upload
         </v-btn>
@@ -86,6 +114,12 @@ export default {
       message: '',
       uploadSuccess: false,
       selectDate: '',
+      selectfileDetails: '',
+      fileDetails: [
+        { id: 'cpu', name: 'CPU' },
+        { id: 'memory', name: 'Memory' },
+        { id: 'other', name: 'Other (Filesystem, Tablespace, Concurrent, AlertLog)' },
+      ],
       availableColumns: [
         '%user',
         '%nice',
@@ -136,6 +170,7 @@ export default {
         this.loading = false;
       }
     },
+
     async uploadFile() {
       if (!this.file || !this.selectedTable) return;
       this.loading = true;
@@ -159,9 +194,32 @@ export default {
         this.loading = false;
       }
     },
+
     async uploadFiles() {
       if (!this.file || !this.selectedTable) return;
       this.loading = true;
+
+      const formData = new FormData();
+      for (let i = 0; i < this.file.length; i++) {
+        formData.append('files', this.file[i]);
+      }
+      formData.append('table_name', this.selectedTableObject.name); // Send Name
+      formData.append('selectDate', this.formattedDate);
+      formData.append('year', this.yearFromSelectDate);
+
+      console.log(formData);
+
+      try {
+        const response = await api.post('/upload/nmon', formData);
+        this.message = response.data.message;
+        this.uploadSuccess = true;
+      } catch (error) {
+        console.error('Upload failed:', error);
+        this.message = 'Upload failed!';
+        this.uploadSuccess = false;
+      } finally {
+        this.loading = false;
+      }
     },
   },
 };

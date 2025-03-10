@@ -457,7 +457,7 @@ export default {
             timestamp: item.datetime_log.split(' ')[0],
             kbswpfree: item.kbswpfree,
             kbswpused: item.kbswpused,
-            swpused_percent: item.swpused_percent,
+            swpused_percent: item.kbswpused / item.kbswpfree * 100,
           })) || [];
 
         this.fsData =

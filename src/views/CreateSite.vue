@@ -1,6 +1,32 @@
 <template>
   <v-container>
     <v-card class="mt-5">
+      <v-card-title>Create New Site</v-card-title>
+      <v-card-text>
+        <v-form @submit.prevent="addSite">
+          <v-text-field
+            v-model="siteName"
+            label="Site Name"
+            required
+          ></v-text-field>
+          <v-row justify="end">
+            <v-btn
+              class="ma-3"
+              type="submit"
+              color="primary"
+              :disabled="!siteName || loading"
+            >
+              Create Site
+            </v-btn>
+          </v-row>
+        </v-form>
+      </v-card-text>
+    </v-card>
+    <v-alert v-if="message" class="mt-3">
+      {{ message }}
+    </v-alert>
+
+    <v-card class="mt-5">
       <v-card-title>Existing Sites</v-card-title>
       <v-card-text>
         <v-data-table
@@ -19,77 +45,6 @@
             </v-btn>
           </template>
         </v-data-table>
-      </v-card-text>
-    </v-card>
-
-    <v-card class="mt-5">
-      <v-alert v-if="message" type="error" class="mt-3">
-        {{ message }}
-      </v-alert>
-      <v-row justify="space-between">
-        <v-col cols="auto">
-          <v-card-title>Create New Site</v-card-title>
-        </v-col>
-        <v-col cols="auto">
-          <v-btn
-            class="ma-3"
-            type="submit"
-            color="primary"
-            :disabled="!siteName || loading"
-          >
-            Create Site
-          </v-btn>
-        </v-col>
-      </v-row>
-      <v-card-text>
-        <v-form @submit.prevent="addSite">
-          <v-text-field
-            v-model="siteName"
-            label="Site Name"
-            required
-          ></v-text-field>
-          <v-radio-group v-model="filetype" inline>
-            <v-radio label="nmon" value="nmon"></v-radio>
-            <v-radio label="text" value="text"></v-radio>
-          </v-radio-group>
-          <v-card>
-            <div v-show="filetype === 'text'">
-              <v-row justify="space-between">
-                <v-col cols="auto">
-                  <v-card-title>RegEX CPU</v-card-title>
-                </v-col>
-                <v-col cols="auto">
-                  <v-btn
-                    color="warning"
-                    href="https://regexr.com/"
-                    target="_blank"
-                    rel="regexr"
-                  >
-                    Link RegEX
-                  </v-btn>
-                </v-col>
-              </v-row>
-              <v-textarea
-                v-model="regexCpu"
-                label="RegEX CPU"
-                :placeholder="regexCpuExample"
-                :required="filetype === 'text'"
-              />
-              <v-card-title>RegEX MEMORY</v-card-title>
-              <v-textarea
-                v-model="regexMemory"
-                label="RegEX MEMORY"
-                required="filetype === 'text'"
-              />
-            </div>
-            <v-card-title>RegEX FILESYSTEM</v-card-title>
-            <v-textarea
-              v-model="regexFilesystem"
-              label="RegEX FILESYSTEM"
-              required
-            />
-          </v-card>
-        </v-form>
       </v-card-text>
     </v-card>
 
@@ -117,13 +72,6 @@ const siteName = ref('');
 const siteList = ref([]);
 const deleteDialog = ref(false);
 const siteToDelete = ref(null);
-const filetype = ref('nmon'); // nmon or text
-const regexCpu = ref('');
-const regexMemory = ref('');
-const regexFilesystem = ref('');
-const regexCpuExample = ref(
-  'Example: .*sysstatM/(\w+)-(\d{2})\.txt:\s+all\s+([\d.]+)\s+[\d.]+\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)',
-);
 
 const siteHeaders = [
   { title: 'ID', key: 'id' },
