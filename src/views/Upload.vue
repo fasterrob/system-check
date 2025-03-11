@@ -30,11 +30,12 @@
           :items="fileDetails"
           item-title="name"
           item-value="id"
-          label="Select Table"
+          label="Select file type to upload"
+          
           outlined
         ></v-select>
 
-        <div v-show="selectfileDetails !== 'other'">
+        <div v-show="selectfileDetails !== 'other' && filetype === 'text'">
           <!-- เลือกคอลัมน์ที่ต้องการอัปโหลด -->
           <p class="text-caption text-disabled">
             *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
@@ -114,9 +115,9 @@ export default {
       message: '',
       uploadSuccess: false,
       selectDate: '',
-      selectfileDetails: '',
+      selectfileDetails: 'cpu',
       fileDetails: [
-        { id: 'cpu', name: 'CPU' },
+        { id: 'cpu', name: 'CPU'},
         { id: 'memory', name: 'Memory' },
         { id: 'other', name: 'Other (Filesystem, Tablespace, Concurrent, AlertLog)' },
       ],
