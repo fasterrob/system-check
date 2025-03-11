@@ -35,7 +35,7 @@
             <v-btn
               color="warning"
               :disabled="!selectedTable || !startDate || !endDate"
-              @click="showConfirm"
+              @click="showDialog = true"
             >
               Generate Report
             </v-btn>
@@ -225,6 +225,19 @@
         </v-data-table>
       </v-card-text>
     </v-card>
+    <v-card v-show="concurrent.length > 0" class="mt-5">
+      <v-card-title>Concurrent</v-card-title>
+      <v-card-text>
+        <v-data-table
+          :headers="concurrentheaders"
+          :items="concurrent"
+          items-per-page="20"
+          density="compact"
+          class="elevation-1"
+          hide-default-footer
+        ></v-data-table>
+      </v-card-text>
+    </v-card>
 
     <v-card v-show="starupData.length > 0" class="mt-5">
       <v-card-title>Startup Time</v-card-title>
@@ -237,19 +250,20 @@
         ></v-data-table>
       </v-card-text>
     </v-card>
-    <ConfirmDialog ref="confirmDialog" />
+    <DialogInput v-model:show="showDialog" @submit="handleSubmit" />
   </v-container>
 </template>
 
 <script>
 import api from '@/plugins/axios';
 import Chart from 'chart.js/auto';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import DialogInput from '@/components/DialogInput.vue';
 
 export default {
-  components: { ConfirmDialog },
+  components: { DialogInput },
   data() {
     return {
+      showDialog: false,
       show: false,
       showBuffer: false,
       processes_tooltip:
@@ -266,6 +280,7 @@ export default {
       sgaData: [],
       processData: [],
       bufferData: [],
+      concurrent: [],
       cpuData: [],
       cpuSummary: [],
       headersCpuSummary: [
@@ -327,6 +342,15 @@ export default {
         { title: 'Date', key: 'datetime_log' },
         { title: 'Instance', key: 'instance' },
         { title: 'Startup Time (s)', key: 'startup_time' },
+      ],
+      concurrentheaders: [
+        { title: 'Program Name', key: 'USER_CONCURRENT_PROGRAM_NAME' },
+        { title: 'Min Running', key: 'MIN_RUNNING' },
+        { title: 'Max Running', key: 'MAX_RUNNING' },
+        { title: 'Avg Running', key: 'AVG_RUNNING' },
+        { title: 'Min Waiting', key: 'MIN_WAITING' },
+        { title: 'Max Waiting', key: 'MAX_WAITING' },
+        { title: 'Avg Waiting', key: 'AVG_WAITING' },
       ],
     };
   },
@@ -457,7 +481,7 @@ export default {
             timestamp: item.datetime_log.split(' ')[0],
             kbswpfree: item.kbswpfree,
             kbswpused: item.kbswpused,
-            swpused_percent: item.kbswpused / item.kbswpfree * 100,
+            swpused_percent: (item.kbswpused / item.kbswpfree) * 100,
           })) || [];
 
         this.fsData =
@@ -513,6 +537,8 @@ export default {
             ).toFixed(2),
           },
         ];
+
+        this.concurrent = response.data.concurrent;
 
         // If no data, show error and reset all variables
         if (
@@ -647,7 +673,7 @@ export default {
           },
           scales: {
             x: { title: { display: true, text: 'Date' } },
-            y: { title: { display: true, text: 'Percentage' }, max: 100 },
+            y: { title: { display: true, text: 'Percentage' }, },
           },
         },
       });
@@ -661,7 +687,6 @@ export default {
 
       if (confirmed) {
         console.log('User clicked Yes');
-        this.downloadReport();
       } else {
         console.log('User clicked No');
       }
@@ -713,6 +738,11 @@ export default {
         this.memoryChartInstance.destroy();
         this.memoryChartInstance = null;
       }
+    },
+    handleSubmit(data) {
+      console.log('First Name:', data.firstName);
+      console.log('Last Name:', data.lastName);
+      this.downloadReport();
     },
   },
 };
