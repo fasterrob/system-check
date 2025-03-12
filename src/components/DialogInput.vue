@@ -3,8 +3,16 @@
     <v-card>
       <v-card-title>Enter Your Details</v-card-title>
       <v-card-text>
-        <v-text-field label="First Name" v-model="firstName" outlined></v-text-field>
-        <v-text-field label="Last Name" v-model="lastName" outlined></v-text-field>
+        <v-text-field
+          label="First Name"
+          v-model="firstName"
+          outlined
+        ></v-text-field>
+        <v-text-field
+          label="Last Name"
+          v-model="lastName"
+          outlined
+        ></v-text-field>
       </v-card-text>
       <v-card-actions>
         <v-btn color="grey" @click="closeDialog">Cancel</v-btn>
@@ -14,7 +22,7 @@
   </v-dialog>
 
   <!-- Reusable Confirmation Dialog Component -->
-  <ConfirmDialog 
+  <ConfirmDialog
     v-model:show="confirmDialog"
     title="Confirm Submission"
     message="Are you sure you want to submit?"
@@ -23,30 +31,30 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from "vue";
-import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import { ref, watch } from 'vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const props = defineProps({
   show: Boolean,
 });
 
-const emit = defineEmits(["update:show", "submit"]);
+const emit = defineEmits(['update:show', 'submit']);
 
 const dialog = ref(props.show);
 const confirmDialog = ref(false);
-const firstName = ref("");
-const lastName = ref("");
+const firstName = ref('');
+const lastName = ref('');
 
 watch(
   () => props.show,
   (newValue) => {
     dialog.value = newValue;
-  }
+  },
 );
 
 watch(dialog, (newValue) => {
   if (!newValue) {
-    emit("update:show", false);
+    emit('update:show', false);
   }
 });
 
@@ -59,7 +67,7 @@ const openConfirmDialog = () => {
 };
 
 const submit = () => {
-  emit("submit", { firstName: firstName.value, lastName: lastName.value });
+  emit('submit', { firstName: firstName.value, lastName: lastName.value });
   confirmDialog.value = false;
   dialog.value = false;
 };

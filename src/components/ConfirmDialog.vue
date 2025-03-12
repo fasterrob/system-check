@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from "vue";
+import { ref, watch } from 'vue';
 
 const props = defineProps({
   show: Boolean,
@@ -20,7 +20,7 @@ const props = defineProps({
   message: String,
 });
 
-const emit = defineEmits(["update:show", "confirm"]);
+const emit = defineEmits(['update:show', 'confirm']);
 
 const dialog = ref(props.show);
 
@@ -28,12 +28,12 @@ watch(
   () => props.show,
   (newValue) => {
     dialog.value = newValue;
-  }
+  },
 );
 
 watch(dialog, (newValue) => {
   if (!newValue) {
-    emit("update:show", false);
+    emit('update:show', false);
   }
 });
 
@@ -42,7 +42,7 @@ const closeDialog = () => {
 };
 
 const confirm = () => {
-  emit("confirm");
+  emit('confirm');
   dialog.value = false;
 };
 </script>
