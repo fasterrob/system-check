@@ -455,10 +455,9 @@ export default {
         this.cpuData =
           response.data.cpu_usage?.map((item) => ({
             timestamp: item.datetime_log.split(' ')[0],
-            user: item.user_percent,
-            system: item.system_percent,
-            iowait: item.iowait_percent,
-            idle: item.idle_percent,
+            user: item.user_avg,
+            system: item.system_avg,
+            iowait: item.iowait_avg,
           })) || [];
 
         this.cpuSummary = [
@@ -479,9 +478,9 @@ export default {
         this.memoryData =
           response.data.memory_usage?.map((item) => ({
             timestamp: item.datetime_log.split(' ')[0],
-            kbswpfree: item.kbswpfree,
-            kbswpused: item.kbswpused,
-            swpused_percent: (item.kbswpused / item.kbswpfree) * 100,
+            kbswpfree: item.kbswpfree_max,
+            kbswpused: item.kbswpused_max,
+            swpused_percent: (item.kbswpused_max / item.kbswpfree_max) * 100,
           })) || [];
 
         this.fsData =
@@ -673,7 +672,7 @@ export default {
           },
           scales: {
             x: { title: { display: true, text: 'Date' } },
-            y: { title: { display: true, text: 'Percentage' }, },
+            y: { title: { display: true, text: 'Percentage' } },
           },
         },
       });
