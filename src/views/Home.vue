@@ -631,7 +631,7 @@ const renderCPUChart = () => {
 const downloadReport = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/dashboard/generate-report', {
+    const response = await api.get('/report', {
       params: {
         site: selectedTable.value,
         start_date: startDate.value,
@@ -642,7 +642,7 @@ const downloadReport = async () => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `HealthCheckReport_${selectedTable.value}_${startDate.value}_${endDate.value}.xlsx`;
+    a.download = `HealthCheckReport_${selectedTable.value}_${startDate.value}_${endDate.value}.docx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
