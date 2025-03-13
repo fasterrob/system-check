@@ -57,7 +57,15 @@
               :items="totalDataTable"
               :items-per-page="10"
               class="elevation-1"
-            ></v-data-table>
+              style="width: 100%"
+            >
+              <template v-slot:item.TOTAL_BANDWIDTH="{ item }">
+                {{ formatNumber(item.TOTAL_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.TOTAL_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.TOTAL_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
 
@@ -70,7 +78,14 @@
               :items="sentDataTable"
               :items-per-page="10"
               class="elevation-1"
-            ></v-data-table>
+            >
+              <template v-slot:item.SENT_BANDWIDTH="{ item }">
+                {{ formatNumber(item.SENT_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.SENT_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.SENT_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
 
@@ -83,7 +98,14 @@
               :items="receiveDataTable"
               :items-per-page="10"
               class="elevation-1"
-            ></v-data-table>
+            >
+              <template v-slot:item.RECEIVE_BANDWIDTH="{ item }">
+                {{ formatNumber(item.RECEIVE_BANDWIDTH) }}
+              </template>
+              <template v-slot:item.RECEIVE_BANDWIDTH_GB="{ item }">
+                {{ formatNumber(item.RECEIVE_BANDWIDTH_GB) }}
+              </template>
+            </v-data-table>
           </v-card>
         </v-window-item>
       </v-window>
@@ -109,30 +131,60 @@ export default {
       tab: 'total',
       startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
       endDate: new Date(),
-      formattedStartDate: '01-DEC-24',
-      formattedEndDate: '31-DEC-24',
+      formattedStartDate: 'dd/mm/yy',
+      formattedEndDate: 'dd/mm/yy',
       startDatePicker: false,
       endDatePicker: false,
       totalData: [],
       totalDataTable: [],
       totalDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Total Bandwidth (MB)', key: 'TOTAL_BANDWIDTH' },
+        { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
+        {
+          title: 'Total Bandwidth (MB)',
+          key: 'TOTAL_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Total Bandwidth (GB)',
+          key: 'TOTAL_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       sentData: [],
       sentDataTable: [],
       sentDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Sent Bandwidth (MB)', key: 'SENT_BANDWIDTH' },
+        { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
+        {
+          title: 'Sent Bandwidth (MB)',
+          key: 'SENT_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Sent Bandwidth (GB)',
+          key: 'SENT_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       receiveData: [],
       receiveDataTable: [],
       receiveDataHeader: [
-        { title: 'Date', key: 'L_DATE' },
-        { title: 'Time', key: 'L_TIME' },
-        { title: 'Received Bandwidth (MB)', key: 'RECEIVE_BANDWIDTH' },
+        { title: 'Date', key: 'L_DATE', align: 'center', width: '25%' },
+        {
+          title: 'Receive Bandwidth (MB)',
+          key: 'RECEIVE_BANDWIDTH',
+          align: 'center',
+          width: '37.5%',
+        },
+        {
+          title: 'Receive Bandwidth (GB)',
+          key: 'RECEIVE_BANDWIDTH_GB',
+          align: 'center',
+          width: '37.5%',
+        },
       ],
       totalChartInstance: null,
       sentChartInstance: null,
@@ -150,7 +202,7 @@ export default {
       this.formattedEndDate = this.formatDate(this.endDate);
       this.fetchData(this.tab);
     },
-    
+
     formatDate(date) {
       if (!(date instanceof Date)) return '';
       const day = String(date.getDate()).padStart(2, '0');
@@ -165,6 +217,7 @@ export default {
       console.log(
         `Fetching ${type} data from ${this.formattedStartDate} to ${this.formattedEndDate}...`,
       );
+
       try {
         let response = await api.get(`/firewall/${type}-bandwidth`, {
           params: {
@@ -173,44 +226,45 @@ export default {
           },
         });
 
-        let rawData = response.data.site_name;
-
-        let groupedData = this.aggregateData(
-          rawData,
-          'L_DATE',
+        let rawData = response.data.site_name || [];
+        let valueKey =
           type === 'total'
             ? 'TOTAL_BANDWIDTH'
             : type === 'sent'
               ? 'SENT_BANDWIDTH'
-              : 'RECEIVE_BANDWIDTH',
-        );
+              : 'RECEIVE_BANDWIDTH';
+
+        let groupedData = this.aggregateData(rawData, 'L_DATE', valueKey);
 
         if (type === 'total') {
-          this.totalDataTable = rawData;
+          this.totalDataTable = groupedData; // Ensure table and graph use the same data
           this.totalData = groupedData;
           this.renderChart(
             'totalChart',
             'Total Bandwidth (MB)',
-            this.totalData,
-            'TOTAL_BANDWIDTH',
+            groupedData,
+            valueKey,
+            'totalChartInstance',
           );
         } else if (type === 'sent') {
-          this.sentDataTable = rawData;
+          this.sentDataTable = groupedData;
           this.sentData = groupedData;
           this.renderChart(
             'sentChart',
             'Sent Bandwidth (MB)',
-            this.sentData,
-            'SENT_BANDWIDTH',
+            groupedData,
+            valueKey,
+            'sentChartInstance',
           );
         } else if (type === 'receive') {
-          this.receiveDataTable = rawData;
+          this.receiveDataTable = groupedData;
           this.receiveData = groupedData;
           this.renderChart(
             'receiveChart',
             'Received Bandwidth (MB)',
-            this.receiveData,
-            'RECEIVE_BANDWIDTH',
+            groupedData,
+            valueKey,
+            'receiveChartInstance',
           );
         }
       } catch (error) {
@@ -221,16 +275,27 @@ export default {
     aggregateData(data, dateKey, valueKey) {
       let aggregated = {};
       data.forEach((row) => {
-        let timestamp = row[dateKey].slice(0, 13);
-        if (!aggregated[timestamp]) {
-          aggregated[timestamp] = { L_DATE: timestamp, [valueKey]: 0 };
+        let date = row[dateKey]; // Keep full date for consistency
+
+        if (!aggregated[date]) {
+          aggregated[date] = {
+            L_DATE: date,
+            [valueKey]: 0,
+            [`${valueKey}_GB`]: 0, // New GB column
+          };
         }
-        aggregated[timestamp][valueKey] += parseFloat(row[valueKey]);
+
+        let mbValue = parseFloat(row[valueKey] || '0');
+        aggregated[date][valueKey] += mbValue;
+        aggregated[date][`${valueKey}_GB`] = (
+          aggregated[date][valueKey] / 1024
+        ).toFixed(2); // Convert MB to GB
       });
+
       return Object.values(aggregated);
     },
 
-    renderChart(chartRef, label, data, dataKey, height = 300) {
+    renderChart(chartRef, label, data, dataKey, height = 200) {
       if (this.chartInstance) {
         this.chartInstance.destroy(); // Destroy existing chart before re-rendering
       }
@@ -272,12 +337,21 @@ export default {
               max: roundedMax, // Increase max limit dynamically
               ticks: {
                 callback: function (value) {
-                  return value.toLocaleString('en-US', { maximumFractionDigits: 0 }); // Format with commas
+                  return value.toLocaleString('en-US', {
+                    maximumFractionDigits: 0,
+                  }); // Format with commas
                 },
               },
             },
           },
         },
+      });
+    },
+
+    formatNumber(value) {
+      if (!value) return '0'; // Handle empty values
+      return Number(value).toLocaleString('en-US', {
+        maximumFractionDigits: 2,
       });
     },
   },
