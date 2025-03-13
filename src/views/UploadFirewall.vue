@@ -166,7 +166,7 @@ const generateReport = async () => {
 
 // Upload File Logic
 const selectedFileType = ref('csv');
-const selectedFile = ref(null);
+const selectedFile = ref([]);
 const isUploading = ref(false);
 const topic = ref(null);
 const itemsTopic = ref(['Antivirus Log', 'IPS Log', 'Firewall Log']);
@@ -189,7 +189,9 @@ const uploadFile = async () => {
   const url = selectedFileType.value === 'log' ? 'upload-log' : 'upload-csv';
 
   const formData = new FormData();
-  formData.append('file', selectedFile.value);
+  selectedFile.value.forEach((file) => {
+     formData.append('file', file);
+   });
   formData.append('year', selectedYear.value);
   formData.append('topic', topic.value);
 
