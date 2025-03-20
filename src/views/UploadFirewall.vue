@@ -90,7 +90,12 @@
           prepend-icon="mdi-paperclip"
           :accept="selectedFileType === 'log' ? '.log' : '.csv'"
           :multiple="selectedFileType === 'log'"
+          show-size
+          @update:modelValue="validateFiles"
         ></v-file-input>
+        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mt-2">
+          {{ errorMessage }}
+        </v-alert>
 
         <div class="d-flex justify-center mt-3">
           <v-btn
@@ -117,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import api from '@/plugins/axios';
 
 // Generate Report Logic
@@ -192,6 +197,20 @@ const selectedFile = ref(null);
 const isUploading = ref(false);
 const topic = ref(null);
 const itemsTopic = ref(['Antivirus Log', 'IPS Log', 'Firewall Log']);
+const maxSize = 5 * 1024 * 1024 * 1024; // 5GB
+const errorMessage = ref('');
+const totalSize = computed(() =>
+  selectedFile.value.reduce((sum, file) => sum + file.size, 0),
+);
+
+const validateFiles = () => {
+  if (totalSize.value > maxSize) {
+    errorMessage.value = 'Total file size exceeds 5GB.';
+    selectedFile.value = []; // reset selected file
+  } else {
+    errorMessage.value = '';
+  }
+};
 
 // CSV
 const uploadFile = async () => {
@@ -232,7 +251,7 @@ const uploadFile = async () => {
 // LOG
 const uploadFiles = async () => {
   if (!selectedFile.value) {
-    alert('Please select a file to upload.');
+    alert('Please select at least one file to upload.');
     return;
   }
   if (!topic.value) {
