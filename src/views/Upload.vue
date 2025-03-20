@@ -31,7 +31,6 @@
           item-title="name"
           item-value="id"
           label="Select file type to upload"
-          
           outlined
         ></v-select>
 
@@ -40,14 +39,16 @@
           <p class="text-caption text-disabled">
             *โปรดเลือก คอลัมน์ ให้ตรงกับข้อมูลที่ต้องการอัปโหลด
           </p>
-          <v-autocomplete
+          <v-combobox
             v-model="selectedColumns"
             :items="availableColumns"
             label="Select existing CPU-related columns"
             multiple
+            chips
+            clearable
             outlined
             dense
-          ></v-autocomplete>
+          ></v-combobox>
         </div>
         <v-file-input
           v-if="filetype === 'text'"
@@ -117,20 +118,25 @@ export default {
       selectDate: '',
       selectfileDetails: 'cpu',
       fileDetails: [
-        { id: 'cpu', name: 'CPU'},
+        { id: 'cpu', name: 'CPU' },
         { id: 'memory', name: 'Memory' },
-        { id: 'other', name: 'Other (Filesystem, Tablespace, Concurrent, AlertLog)' },
+        {
+          id: 'other',
+          name: 'Other (Filesystem, Tablespace, Concurrent, AlertLog)',
+        },
       ],
       availableColumns: [
-        '%user',
-        '%nice',
-        '%system',
-        '%iowait',
-        '%irq',
-        '%soft',
-        '%steal',
-        '%guest',
-        '%idle',
+        'DATETIME_LOG',
+        'CPU',
+        'USER',
+        'SYSTEM',
+        'IOWAIT',
+        'IDLE',
+        'NICE',
+        'IRQ',
+        'SOFT',
+        'STEAL',
+        'GUEST',
       ],
       selectedColumns: [],
     };
@@ -182,6 +188,7 @@ export default {
       formData.append('table_name', this.selectedTableObject.name); // Send Name
       formData.append('selectDate', this.formattedDate);
       formData.append('year', this.yearFromSelectDate);
+      formData.append('columns', this.selectedColumns);
 
       try {
         const response = await api.post('/upload', formData);
@@ -220,6 +227,15 @@ export default {
         this.uploadSuccess = false;
       } finally {
         this.loading = false;
+      }
+    },
+    handleNewValue(value) {
+      if (Array.isArray(value)) {
+        value.forEach((val) => {
+          if (!items.value.includes(val)) {
+            items.value.push(val);
+          }
+        });
       }
     },
   },

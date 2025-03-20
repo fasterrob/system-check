@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <v-card class="mt-5">
+    <v-card>
       <v-card-title>Create New Site</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="addSite">

@@ -31,6 +31,7 @@
         </v-row>
 
         <v-row justify="end">
+          <v-switch v-model="ai" label="AI" color="primary"></v-switch>
           <v-col cols="auto">
             <v-btn
               color="warning"
@@ -261,6 +262,7 @@ import Chart from 'chart.js/auto';
 import DialogInput from '@/components/DialogInput.vue';
 
 // Reactive references
+const ai = ref(true);
 const showDialog = ref(false);
 const loading = ref(false);
 const error = ref('');
@@ -636,6 +638,7 @@ const downloadReport = async () => {
         site: selectedTable.value,
         start_date: startDate.value,
         end_date: endDate.value,
+        useAi: ai.value,
       },
       responseType: 'blob',
     });
