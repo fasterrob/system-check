@@ -470,7 +470,7 @@ const fetchData = async () => {
       response.data.memory_usage?.map((item) => ({
         timestamp: item.datetime_log.split(' ')[0],
         kbswpfree: item.kbswpfree_max,
-        kbswpused: item.kbswpused_max,
+        kbswpused: item.kbswpused_max / 1024,
         swpused_percent: (item.kbswpused_max / item.kbswpfree_max) * 100,
       })) || [];
 
@@ -563,8 +563,8 @@ const renderMemoryChart = () => {
       labels: memoryData.value.map((d) => d.timestamp),
       datasets: [
         {
-          label: 'Swap Used (%)',
-          data: memoryData.value.map((d) => d.swpused_percent),
+          label: 'Swap Used',
+          data: memoryData.value.map((d) => d.kbswpused),
           borderColor: 'red',
           fill: true,
         },
@@ -579,7 +579,7 @@ const renderMemoryChart = () => {
       },
       scales: {
         x: { title: { display: true, text: 'Date' } },
-        y: { title: { display: true, text: 'KB' } },
+        y: { title: { display: true, text: 'MB' } },
       },
     },
   });
