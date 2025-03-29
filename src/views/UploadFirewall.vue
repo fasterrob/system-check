@@ -37,7 +37,7 @@
         prepend-icon="mdi-calendar"
       ></v-select>
 
-      <!-- Directory Selector (Simulated v-file-input) -->
+      <!-- Editor Name Input -->
       <v-text-field
         v-model="inputFullname"
         label="Input Editor Name"
@@ -96,7 +96,8 @@
         <v-alert v-if="errorMessage" type="error" variant="tonal" class="mt-2">
           {{ errorMessage }}
         </v-alert>
-
+        
+        <!-- Log Import Button -->
         <div class="d-flex justify-center mt-3">
           <v-btn
             v-if="selectedFileType === 'csv'"
@@ -125,7 +126,7 @@
 import { ref, computed } from 'vue';
 import api from '@/plugins/axios';
 
-// Generate Report Logic
+// Generate Report Section
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(null);
 const inputFullname = ref('');
@@ -146,6 +147,7 @@ const monthNames = [
   'December',
 ];
 
+// Report Generate Script
 const generateReport = async () => {
   if (!selectedMonth.value || !selectedYear.value || !inputFullname.value) {
     alert('Please select month, year, and input editor name.');
@@ -191,7 +193,7 @@ const generateReport = async () => {
   }
 };
 
-// Upload File Logic
+// Upload File Section
 const selectedFileType = ref('csv');
 const selectedFile = ref(null);
 const isUploading = ref(false);
@@ -203,6 +205,7 @@ const totalSize = computed(() =>
   selectedFile.value.reduce((sum, file) => sum + file.size, 0),
 );
 
+// Upload Size Limit
 const validateFiles = () => {
   if (totalSize.value > maxSize) {
     errorMessage.value = 'Total file size exceeds 5GB.';
@@ -212,7 +215,7 @@ const validateFiles = () => {
   }
 };
 
-// CSV
+// CSV Import
 const uploadFile = async () => {
   if (!selectedFile.value) {
     alert('Please select a file to upload.');
@@ -248,7 +251,7 @@ const uploadFile = async () => {
   }
 };
 
-// LOG
+// LOG Import
 const uploadFiles = async () => {
   if (!selectedFile.value) {
     alert('Please select at least one file to upload.');

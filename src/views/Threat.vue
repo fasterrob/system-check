@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <!-- Date Range Picker -->
     <v-row justify="end" class="mb-3">
       <!-- Date Range Picker -->
       <v-col cols="3">
@@ -32,6 +33,7 @@
         density="compact"
         hide-default-footer
       >
+        <!-- Threat color -->
         <template v-slot:item.status="{ item }">
             <v-chip
               :color="
